@@ -1,0 +1,28 @@
+[15:08:59] [Client thread/INFO]: Setting user: Player984
+[15:09:04] [Client thread/INFO]: LWJGL Version: 2.9.4
+[15:09:11] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:Slab Client
+[15:09:11] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[15:09:12] [Thread-9/INFO]: Initializing LWJGL OpenAL
+[15:09:12] [Thread-9/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[15:09:12] [Thread-9/INFO]: OpenAL initialized.
+[15:09:12] [Sound Library Loader/INFO]: Sound engine started
+[15:09:22] [Client thread/INFO]: Created: 16x16 textures-atlas
+[15:09:25] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:Slab Client
+[15:09:25] [Client thread/INFO]: SoundSystem shutting down...
+[15:09:25] [Client thread/WARN]: Author: Paul Lamb, www.paulscode.com
+[15:09:25] [Sound Library Loader/INFO]: Starting up SoundSystem...
+[15:09:25] [Thread-11/INFO]: Initializing LWJGL OpenAL
+[15:09:25] [Thread-11/INFO]: (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[15:09:25] [Thread-11/INFO]: OpenAL initialized.
+[15:09:26] [Sound Library Loader/INFO]: Sound engine started
+[15:09:34] [Client thread/INFO]: Created: 512x512 textures-atlas
+[15:11:00] [Server thread/INFO]: Starting integrated minecraft server version 1.8.9
+[15:11:00] [Server thread/INFO]: Generating keypair
+[15:11:01] [Server thread/INFO]: Preparing start region for level 0
+[15:11:02] [Server thread/INFO]: Changing view distance to 12, from 10
+[15:11:03] [Server thread/INFO]: Player984[local:E:4119d77e] logged in with entity id 1 at (319.69999998807907, 56.29537598913944, 971.6999999880791)
+[15:11:03] [Server thread/INFO]: Player984 joined the game
+[15:11:05] [Server thread/INFO]: Saving and pausing game...
+[15:11:05] [Server thread/INFO]: Saving chunks for level 'test'/Overworld
+[15:11:05] [Server thread/INFO]: Saving chunks for level 'test'/Nether
+[15:11:05] [Server thread/INFO]: Saving chunks for level 'test'/The End

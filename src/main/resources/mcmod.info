@@ -1,0 +1,16 @@
+[
+{
+  "modid": "slabclient",
+  "name": "Slab Client",
+  "description": "A PVP client for Minecraft.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "slabstudios.dev",
+  "updateUrl": "",
+  "authorList": ["TheSlab"],
+  "credits": "Slab Studios",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
