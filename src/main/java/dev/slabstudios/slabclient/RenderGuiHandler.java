@@ -32,7 +32,7 @@ public class RenderGuiHandler {
 		new AutoSprintModule(5,5 + (modules.size()) * 10);
 		
 		//no interface
-		new AutoGG(5,5 + (modules.size()) * 10);
+		//new AutoGG(5,5 + (modules.size()) * 10);
 		
 		//big interface
 		new PotionStatus(5,5 + (modules.size()) * 10);

@@ -18,7 +18,7 @@ public class CapesAPI {
 	/**
 	 * Base URL to fetch the capes from
 	 */
-	private static final String BASE_URL = "http://waldropdrive.com/api/getCape/%s";
+	private static final String BASE_URL = "http://URL.com/getCape/%s";
 
 	/**
 	 * Holds a list of UUIDs whose cape is currently being fetched

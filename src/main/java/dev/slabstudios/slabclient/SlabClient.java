@@ -3,9 +3,6 @@ package dev.slabstudios.slabclient;
 import java.util.UUID;
 
 import dev.slabstudios.slabclient.commands.SetAutoGGMSG;
-import dev.slabstudios.slabclient.utils.CapesAPI;
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -21,7 +18,7 @@ public class SlabClient {
 	public void init(FMLInitializationEvent event) {
 		// lets register events
 		MinecraftForge.EVENT_BUS.register(new RenderGuiHandler());
-		ClientCommandHandler.instance.registerCommand(new SetAutoGGMSG());
+		//ClientCommandHandler.instance.registerCommand(new SetAutoGGMSG());
 		
 		MinecraftForge.EVENT_BUS.register(new ConnectionHandler());
 		
