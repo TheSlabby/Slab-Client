@@ -46,24 +46,18 @@ public class GuiMenu extends GuiScreen {
 
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-		// check if any modules have been double clicked (probably the shittiest code
-		// ive ever written lol)
-		HashMap<Module, Integer> clickMap = new HashMap<Module, Integer>();
+		// check if any modules have been double clicked
+		clicks.keySet().removeIf(time -> time + 500 < Minecraft.getSystemTime());
 
+		HashMap<Module, Integer> clickMap = new HashMap<Module, Integer>();
 		for (Entry<Long, Module> entry : clicks.entrySet()) {
-			if (entry.getKey() + 500 < Minecraft.getSystemTime()) {
-				clicks.remove(entry.getKey());
-			}
-			if (clickMap.get(entry.getValue()) == null) {
-				clickMap.put(entry.getValue(), 1);
-			} else {
-				clickMap.put(entry.getValue(), clickMap.get(entry.getValue()) + 1);
-				if (clickMap.get(entry.getValue()) >= 2) {
-					System.out.println("Double click!");
-					clicks.clear();
-					entry.getValue().toggleEnabled();
-					break;
-				}
+			int count = clickMap.getOrDefault(entry.getValue(), 0) + 1;
+			clickMap.put(entry.getValue(), count);
+			if (count >= 2) {
+				System.out.println("Double click!");
+				clicks.clear();
+				entry.getValue().toggleEnabled();
+				break;
 			}
 		}
 
@@ -77,6 +71,11 @@ public class GuiMenu extends GuiScreen {
 				EnumChatFormatting.AQUA + "" + EnumChatFormatting.BOLD + "Slab Client", (int) (getWidth() / 2 / scale),
 				(int) ((getHeight() / 2 - (4 * scale)) / scale), 0xFFFFFF);
 		GL11.glPopMatrix();
+
+		// Draw instructions for the player
+		this.drawCenteredString(mc.fontRendererObj,
+				EnumChatFormatting.GRAY + "Double-click a module to toggle it. Drag to rearrange.",
+				getWidth() / 2, getHeight() / 2 + 25, 0xFFFFFF);
 
 		for (Button button : buttons) {
 			button.render(this, mc, mouseX, mouseY);
@@ -134,6 +133,7 @@ public class GuiMenu extends GuiScreen {
 	public void mouseReleased(int x, int y, int state) {
 		if (dragging != null) {
 			// snap dragged item back to grid
+			ConfigManager.save();
 		}
 		dragging = null;
 	}
