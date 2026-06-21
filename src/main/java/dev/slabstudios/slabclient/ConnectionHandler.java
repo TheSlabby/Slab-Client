@@ -15,7 +15,7 @@ public class ConnectionHandler {
 	
 	@SubscribeEvent
 	public void onConnect(FMLNetworkEvent.ClientConnectedToServerEvent event) {
-		if(!event.isLocal) {
+		if(!event.isLocal && Minecraft.getMinecraft().getCurrentServerData() != null) {
 			ip = Minecraft.getMinecraft().getCurrentServerData().serverIP;
 			remote = true;
 		}else {

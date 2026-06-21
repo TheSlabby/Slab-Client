@@ -25,6 +25,8 @@ public class GuiMenu extends GuiScreen {
 	public static boolean active;
 
 	private List<Button> buttons = new ArrayList<Button>();
+	private Button resetButton;
+	private long lastResetClickTime = 0;
 
 	public static int getWidth() {
 		Minecraft mc = Minecraft.getMinecraft();
@@ -38,14 +40,56 @@ public class GuiMenu extends GuiScreen {
 
 	@Override
 	public void initGui() {
-		buttons.add(new Button("Close", (int) (getWidth() - getWidth() * .15), 0, (int) (getWidth() * .15),
-				(int) (getHeight() * .1), 0xFF0000));
+		buttons.clear();
+		buttons.add(new Button("Close", getWidth() / 2 - 100, getHeight() - 30, 95, 20, 0xFF0000));
+
+		resetButton = new Button("Reset Layout", getWidth() / 2 + 5, getHeight() - 30, 95, 20, 0x0000FF);
+		resetButton.onClick = () -> {
+			long now = Minecraft.getSystemTime();
+			if (now - lastResetClickTime < 3000) {
+				// Reset all layout positions to default
+				for (Module module : RenderGuiHandler.modules) {
+					if (module.key.equals("Keystrokes")) {
+						module.x = getWidth() - 70;
+						module.y = 5;
+					} else {
+						module.x = 5;
+						if (module.key.equals("FPS")) module.y = 5;
+						else if (module.key.equals("Coordinates")) module.y = 15;
+						else if (module.key.equals("Server IP")) module.y = 25;
+						else if (module.key.equals("Ping")) module.y = 35;
+						else if (module.key.equals("Time")) module.y = 45;
+						else if (module.key.equals("Autosprint")) module.y = 55;
+						else if (module.key.equals("Fullbright")) module.y = 65;
+						else if (module.key.equals("Damage Indicators")) module.y = 75;
+						else if (module.key.equals("Reach")) module.y = 85;
+						else if (module.key.equals("Combo")) module.y = 95;
+						else if (module.key.equals("Block Overlay")) module.y = 105;
+						else if (module.key.equals("Armor Status")) module.y = 115;
+						else if (module.key.equals("Potion Status")) module.y = 210;
+					}
+				}
+				ConfigManager.save();
+				resetButton.text = "Layout Reset!";
+				lastResetClickTime = 0;
+			} else {
+				resetButton.text = "Confirm?";
+				lastResetClickTime = now;
+			}
+		};
+		buttons.add(resetButton);
 	}
 
 	private HashMap<Long, Module> clicks = new HashMap<Long, Module>(); // time, module clicked
 
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+		// Reset layout button confirmation timeout
+		if (lastResetClickTime > 0 && Minecraft.getSystemTime() - lastResetClickTime > 3000) {
+			resetButton.text = "Reset Layout";
+			lastResetClickTime = 0;
+		}
+
 		// check if any modules have been double clicked
 		clicks.keySet().removeIf(time -> time + 500 < Minecraft.getSystemTime());
 
@@ -76,6 +120,10 @@ public class GuiMenu extends GuiScreen {
 		this.drawCenteredString(mc.fontRendererObj,
 				EnumChatFormatting.GRAY + "Double-click a module to toggle it. Drag to rearrange.",
 				getWidth() / 2, getHeight() / 2 + 25, 0xFFFFFF);
+
+		this.drawCenteredString(mc.fontRendererObj,
+				EnumChatFormatting.YELLOW + "Custom Commands: " + EnumChatFormatting.WHITE + "/setgg <message>",
+				getWidth() / 2, getHeight() / 2 + 40, 0xFFFFFF);
 
 		for (Button button : buttons) {
 			button.render(this, mc, mouseX, mouseY);
