@@ -1,9 +1,9 @@
 #include <iostream>
 #include <boost/asio.hpp>
-#include "Server.hpp"
-
+#include "Manager.hpp"
 
 using boost::asio::ip::tcp;
+namespace asio = boost::asio;
 
 int main(int argc, char* argv[])
 {
@@ -12,9 +12,7 @@ int main(int argc, char* argv[])
 
     boost::asio::io_context io;
 
-    Server server(io, port);
-
-
+    Manager manager(io, port);
 
     io.run(); // run asio event loop
 }

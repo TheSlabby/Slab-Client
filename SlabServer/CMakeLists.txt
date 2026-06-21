@@ -11,6 +11,8 @@ find_package(nlohmann_json REQUIRED)
 
 add_executable(slabserver
     main.cpp
+    Manager.cpp
+    Server.cpp
 )
 
 include_directories(${SQLite3_INCLUDE_DIRS})
