@@ -29,6 +29,9 @@ public class GuiMenu extends GuiScreen {
 	private Button resetButton;
 	private long lastResetClickTime = 0;
 	private GuiTextField serverAddressField;
+	private int scrollOffset = 0;
+	private int lastMouseX = 0;
+	private int lastMouseY = 0;
 
 	public static int getWidth() {
 		Minecraft mc = Minecraft.getMinecraft();
@@ -131,6 +134,68 @@ public class GuiMenu extends GuiScreen {
 		// render slab client logo
 		Gui.drawRect(0, 0, getWidth(), getHeight(), 0x7F000000);
 
+		this.lastMouseX = mouseX;
+		this.lastMouseY = mouseY;
+
+		int panelWidth = 140;
+		int panelHeight = 120;
+		int panelX = getWidth() - panelWidth - 10;
+		int panelY = getHeight() - panelHeight - 10;
+
+		// Build connected players list
+		List<String> players = new ArrayList<String>();
+		if (SlabSocketClient.status.equals("Connected")) {
+			if (mc.thePlayer != null) {
+				players.add(mc.getSession().getUsername() + " (You)");
+			}
+			for (SlabSocketClient.RemotePlayer rp : SlabSocketClient.remotePlayers.values()) {
+				players.add(rp.username);
+			}
+		} else {
+			players.add(EnumChatFormatting.RED + "Offline");
+		}
+
+		// Draw panel background (glassmorphism/sleek translucent black)
+		drawRect(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x80000000);
+		// Draw simple borders
+		drawRect(panelX, panelY, panelX + panelWidth, panelY + 1, 0x40FFFFFF);
+		drawRect(panelX, panelY + panelHeight - 1, panelX + panelWidth, panelY + panelHeight, 0x40FFFFFF);
+		drawRect(panelX, panelY, panelX + 1, panelY + panelHeight, 0x40FFFFFF);
+		drawRect(panelX + panelWidth - 1, panelY, panelX + panelWidth, panelY + panelHeight, 0x40FFFFFF);
+
+		// Header text
+		String headerText = EnumChatFormatting.AQUA + "Connected Players";
+		this.drawCenteredString(mc.fontRendererObj, headerText, panelX + panelWidth / 2, panelY + 6, 0xFFFFFF);
+		drawRect(panelX + 4, panelY + 18, panelX + panelWidth - 4, panelY + 19, 0x30FFFFFF);
+
+		int listY = panelY + 22;
+		int listHeight = panelHeight - 26;
+		int rowHeight = 14;
+		int totalListHeight = players.size() * rowHeight;
+		
+		int maxScroll = Math.max(0, totalListHeight - listHeight);
+		if (scrollOffset > maxScroll) {
+			scrollOffset = maxScroll;
+		}
+
+		// Enable scissor clipping
+		enableScissor(panelX + 2, listY, panelWidth - 4, listHeight);
+
+		for (int i = 0; i < players.size(); i++) {
+			String name = players.get(i);
+			int itemY = listY + (i * rowHeight) - scrollOffset;
+			
+			int color = 0xFFFFFF;
+			if (name.endsWith(" (You)")) {
+				color = 0x55FF55; // Light green for local player
+			}
+			
+			mc.fontRendererObj.drawStringWithShadow(name, panelX + 8, itemY + 3, color);
+		}
+
+		// Disable scissor clipping
+		disableScissor();
+
 		GL11.glPushMatrix();
 		float scale = 4;
 		GL11.glScalef(scale, scale, scale);
@@ -156,6 +221,8 @@ public class GuiMenu extends GuiScreen {
 		int statusColor = 0xAAAAAA; // Gray
 		if (SlabSocketClient.status.equals("Connected")) {
 			statusColor = 0x55FF55; // Green
+			String totalClientsText = "Connected Clients: " + (SlabSocketClient.remotePlayers.size() + 1);
+			mc.fontRendererObj.drawStringWithShadow(totalClientsText, getWidth() / 2 + 40, getHeight() - 84, 0x55FFFF);
 		} else if (SlabSocketClient.status.equals("Connecting...")) {
 			statusColor = 0xFFFF55; // Yellow
 		} else if (SlabSocketClient.status.equals("Failed")) {
@@ -264,5 +331,45 @@ public class GuiMenu extends GuiScreen {
 		if (serverAddressField != null) {
 			serverAddressField.updateCursorCounter();
 		}
+	}
+
+	@Override
+	public void handleMouseInput() throws java.io.IOException {
+		super.handleMouseInput();
+		int dw = org.lwjgl.input.Mouse.getEventDWheel();
+		if (dw != 0) {
+			int panelWidth = 140;
+			int panelHeight = 120;
+			int panelX = getWidth() - panelWidth - 10;
+			int panelY = getHeight() - panelHeight - 10;
+			
+			if (lastMouseX >= panelX && lastMouseX <= panelX + panelWidth && lastMouseY >= panelY && lastMouseY <= panelY + panelHeight) {
+				if (dw > 0) {
+					scrollOffset -= 14;
+				} else {
+					scrollOffset += 14;
+				}
+				if (scrollOffset < 0) {
+					scrollOffset = 0;
+				}
+			}
+		}
+	}
+
+	private void enableScissor(int x, int y, int width, int height) {
+		ScaledResolution sr = new ScaledResolution(mc);
+		int scale = sr.getScaleFactor();
+		
+		int scissorX = x * scale;
+		int scissorY = mc.displayHeight - (y + height) * scale;
+		int scissorW = width * scale;
+		int scissorH = height * scale;
+		
+		GL11.glEnable(GL11.GL_SCISSOR_TEST);
+		GL11.glScissor(scissorX, scissorY, scissorW, scissorH);
+	}
+
+	private void disableScissor() {
+		GL11.glDisable(GL11.GL_SCISSOR_TEST);
 	}
 }
