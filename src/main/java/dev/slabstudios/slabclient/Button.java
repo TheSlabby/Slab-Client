@@ -11,6 +11,7 @@ public class Button {
 	public int x, y, sx, sy, color;
 	public String text;
 	public String action = "close"; // close is default action
+	public Runnable onClick;
 
 	public Button(String text, int x, int y, int sx, int sy, int color) {
 		this.x = x;
@@ -49,7 +50,9 @@ public class Button {
 
 	public void checkClicked(int x, int y) {
 		if (isHovering(x, y)) {
-			if (action.equals("close")) {
+			if (onClick != null) {
+				onClick.run();
+			} else if (action.equals("close")) {
 				Minecraft.getMinecraft().displayGuiScreen((GuiScreen) null);
 			}
 		}

@@ -24,11 +24,7 @@ public class CPSModule extends Module{
 	@Override
 	public void update() {
 		long runTime = Minecraft.getSystemTime(); //in ms
-		for(int i=0;i<clicks.size();i++) {
-			if(runTime > clicks.get(i)+1000) {
-				clicks.remove(i);
-			}
-		}
+		clicks.removeIf(time -> runTime > time + 1000);
 		this.value = Integer.toString(clicks.size());
 	}
 	

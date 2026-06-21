@@ -64,6 +64,8 @@ public class PotionStatus extends Module {
 			
 			Minecraft mc = Minecraft.getMinecraft();
 			EntityPlayerSP plr = mc.thePlayer;
+			if (plr == null) return;
+
 			Collection<PotionEffect> effects = plr.getActivePotionEffects();
 
 			int i = 0;
@@ -72,45 +74,37 @@ public class PotionStatus extends Module {
 
 				int y = this.y + i * 20;
 
-				Potion[] apotion = Potion.potionTypes;
+				int id = effect.getPotionID();
+				if (id >= 0 && id < Potion.potionTypes.length) {
+					Potion potion = Potion.potionTypes[id];
 
-				for (int j = 0; j < apotion.length; ++j) {
-					Potion potion = apotion[j];
+					if (potion != null && potion.hasStatusIcon()) {
 
-					if (potion != null && potion.getName().equals(effect.getEffectName())) {
+						// render potion here
+						int height = 30;
 
-						if (potion.hasStatusIcon()) {
+						String potionDisplayText = potionNames.get(potion.getName()) + " "
+								+ (effect.getAmplifier() + 1);
+						
+						int duration = (int) effect.getDuration() / 20;
+						long minutes = TimeUnit.SECONDS.toMinutes(duration);
+						duration -= TimeUnit.MINUTES.toSeconds(minutes);
+						String seconds = String.format("%02d", duration);
+						
+						//draw strings
+						this.drawString(mc.fontRendererObj, potionDisplayText, x + 20, y - 12 + (height / 2),
+								potion.getLiquidColor());
+						this.drawString(mc.fontRendererObj, minutes + ":" + seconds, x + 20, y - 4 + (height / 2),
+								potion.getLiquidColor());
 
-							// render potion here
-							int height = 30;
+						int potionStatusIcon = potion.getStatusIconIndex();
+						mc.renderEngine.bindTexture(
+								new ResourceLocation("minecraft", "textures/gui/container/inventory.png"));
+						mc.ingameGUI.drawTexturedModalRect(x, y, potionStatusIcon % 8 * 18,
+								166 + 32 + potionStatusIcon / 8 * 18, 18, 18);
 
-							String potionDisplayText = potionNames.get(potion.getName()) + " "
-									+ (effect.getAmplifier() + 1);
-							
-							
-							
-							
-							int duration = (int) effect.getDuration() / 20;
-							long minutes = TimeUnit.SECONDS.toMinutes(duration);
-							duration -= TimeUnit.MINUTES.toSeconds(minutes);
-							String seconds = String.format("%02d", duration);
-							
-							//draw strings
-							this.drawString(mc.fontRendererObj, potionDisplayText, x + 20, y - 12 + (height / 2),
-									potion.getLiquidColor());
-							this.drawString(mc.fontRendererObj, minutes + ":" + seconds, x + 20, y - 4 + (height / 2),
-									potion.getLiquidColor());
-
-							int potionStatusIcon = potion.getStatusIconIndex();
-							mc.renderEngine.bindTexture(
-									new ResourceLocation("minecraft", "textures/gui/container/inventory.png"));
-							mc.ingameGUI.drawTexturedModalRect(x, y, potionStatusIcon % 8 * 18,
-									166 + 32 + potionStatusIcon / 8 * 18, 18, 18);
-
-						}
 					}
 				}
-
 			}
 		}
 	}

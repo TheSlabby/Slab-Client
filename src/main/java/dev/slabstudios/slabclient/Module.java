@@ -37,6 +37,7 @@ public class Module extends Gui {
 	public void toggleEnabled() {
 		this.enabled = !this.enabled;
 		this.visible = this.enabled;
+		ConfigManager.save();
 	}
 	
 	public void render(boolean force) {

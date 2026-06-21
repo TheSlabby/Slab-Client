@@ -11,86 +11,130 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
-import net.minecraftforge.client.event.RenderWorldEvent;
-import net.minecraftforge.client.event.RenderWorldLastEvent;
+import net.minecraftforge.client.event.DrawBlockHighlightEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 public class BlockOverlayModule extends Module {
 
-	public BlockOverlayModule() {
-		super(0, 0);
-		// TODO Auto-generated constructor stub
-		this.visible = false;
+	public BlockOverlayModule(int x, int y) {
+		super(x, y);
+		this.key = "Block Overlay";
+		this.enabled = true;
+		this.visible = true;
 
 		MinecraftForge.EVENT_BUS.register(this);
 	}
 
-	private void drawOutline(BlockPos pos) {
+	private void drawOutline(BlockPos pos, float partialTicks) {
+		Minecraft mc = Minecraft.getMinecraft();
+		Block block = mc.theWorld.getBlockState(pos).getBlock();
+		AxisAlignedBB abb = block.getSelectedBoundingBox(mc.theWorld, pos);
+		if (abb == null) return;
+		
+		// Expand slightly to prevent depth fighting/z-fighting
+		double minX = abb.minX - 0.002D;
+		double minY = abb.minY - 0.002D;
+		double minZ = abb.minZ - 0.002D;
+		double maxX = abb.maxX + 0.002D;
+		double maxY = abb.maxY + 0.002D;
+		double maxZ = abb.maxZ + 0.002D;
 		
 		GL11.glPushMatrix();
-				
 		
-		//translate draw origin to the center of the chunk the player is in		
+		// Translate draw origin to the camera position for smooth rendering
 		GlStateManager.disableTexture2D();
+		GlStateManager.disableLighting();
 		
-		EntityPlayerSP player = Minecraft.getMinecraft().thePlayer;
-		GL11.glTranslated(-player.posX,-player.posY,-player.posZ);
+		EntityPlayerSP player = mc.thePlayer;
+		double renderX = player.prevPosX + (player.posX - player.prevPosX) * (double) partialTicks;
+		double renderY = player.prevPosY + (player.posY - player.prevPosY) * (double) partialTicks;
+		double renderZ = player.prevPosZ + (player.posZ - player.prevPosZ) * (double) partialTicks;
+		GL11.glTranslated(-renderX, -renderY, -renderZ);
 		
+		// Enable blending for transparency
+		GlStateManager.enableBlend();
+		GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+		
+		// Render filled transparent block (cyan, 15% opacity)
+		GlStateManager.depthMask(false);
+		GL11.glColor4f(0.0F, 0.8F, 1.0F, 0.15F);
+		GL11.glBegin(GL11.GL_QUADS);
+		// Bottom face
+		GL11.glVertex3d(minX, minY, minZ);
+		GL11.glVertex3d(maxX, minY, minZ);
+		GL11.glVertex3d(maxX, minY, maxZ);
+		GL11.glVertex3d(minX, minY, maxZ);
+		// Top face
+		GL11.glVertex3d(minX, maxY, minZ);
+		GL11.glVertex3d(minX, maxY, maxZ);
+		GL11.glVertex3d(maxX, maxY, maxZ);
+		GL11.glVertex3d(maxX, maxY, minZ);
+		// North face
+		GL11.glVertex3d(minX, minY, minZ);
+		GL11.glVertex3d(minX, maxY, minZ);
+		GL11.glVertex3d(maxX, maxY, minZ);
+		GL11.glVertex3d(maxX, minY, minZ);
+		// South face
+		GL11.glVertex3d(minX, minY, maxZ);
+		GL11.glVertex3d(maxX, minY, maxZ);
+		GL11.glVertex3d(maxX, maxY, maxZ);
+		GL11.glVertex3d(minX, maxY, maxZ);
+		// West face
+		GL11.glVertex3d(minX, minY, minZ);
+		GL11.glVertex3d(minX, minY, maxZ);
+		GL11.glVertex3d(minX, maxY, maxZ);
+		GL11.glVertex3d(minX, maxY, minZ);
+		// East face
+		GL11.glVertex3d(maxX, minY, minZ);
+		GL11.glVertex3d(maxX, maxY, minZ);
+		GL11.glVertex3d(maxX, maxY, maxZ);
+		GL11.glVertex3d(maxX, minY, maxZ);
+		GL11.glEnd();
+		
+		GlStateManager.depthMask(true);
+		
+		// Render thick outline (cyan, 80% opacity)
+		GL11.glLineWidth(2.5F);
+		GL11.glColor4f(0.0F, 0.8F, 1.0F, 0.8F);
 		GL11.glBegin(GL11.GL_LINES);
 		
+		// Bottom face
+		GL11.glVertex3d(minX, minY, minZ); GL11.glVertex3d(maxX, minY, minZ);
+		GL11.glVertex3d(maxX, minY, minZ); GL11.glVertex3d(maxX, minY, maxZ);
+		GL11.glVertex3d(maxX, minY, maxZ); GL11.glVertex3d(minX, minY, maxZ);
+		GL11.glVertex3d(minX, minY, maxZ); GL11.glVertex3d(minX, minY, minZ);
 		
-		// Yellow line in the middle
-		GL11.glColor3f(1F, 1F, 0F);
-		GL11.glLineWidth(20f);
-
-		GL11.glVertex3d(pos.getX(), pos.getY(), pos.getZ());
-		GL11.glVertex3d(pos.getX(), 1+pos.getY(), pos.getZ());
+		// Top face
+		GL11.glVertex3d(minX, maxY, minZ); GL11.glVertex3d(maxX, maxY, minZ);
+		GL11.glVertex3d(maxX, maxY, minZ); GL11.glVertex3d(maxX, maxY, maxZ);
+		GL11.glVertex3d(maxX, maxY, maxZ); GL11.glVertex3d(minX, maxY, maxZ);
+		GL11.glVertex3d(minX, maxY, maxZ); GL11.glVertex3d(minX, maxY, minZ);
 		
-		
-		// Red lines on corners
-		GL11.glColor3f(1F, 0F, 0F); 
-
-		GL11.glVertex3d(-1, 0, -1);
-		GL11.glVertex3d(-1, 1, -1);
-
-		GL11.glVertex3d(1, 0, 1);
-		GL11.glVertex3d(1, 1, 1);
-
-		GL11.glVertex3d(-1, 0, 1);
-		GL11.glVertex3d(-1, 1, 1);
-
-		GL11.glVertex3d(1, 0, -1);
-		GL11.glVertex3d(1, 1, -1);
+		// Vertical edges
+		GL11.glVertex3d(minX, minY, minZ); GL11.glVertex3d(minX, maxY, minZ);
+		GL11.glVertex3d(maxX, minY, minZ); GL11.glVertex3d(maxX, maxY, minZ);
+		GL11.glVertex3d(maxX, minY, maxZ); GL11.glVertex3d(maxX, maxY, maxZ);
+		GL11.glVertex3d(minX, minY, maxZ); GL11.glVertex3d(minX, maxY, maxZ);
 		
 		GL11.glEnd();
 		
+		// Reset GL states
+		GL11.glLineWidth(1.0F);
+		GlStateManager.disableBlend();
+		GlStateManager.enableLighting();
 		GlStateManager.enableTexture2D();
-	
-	GL11.glPopMatrix();
-
 		
-
+		GL11.glPopMatrix();
 	}
 
 	@SubscribeEvent
-	public void onRender(RenderWorldLastEvent event) {
-		MovingObjectPosition objectMouseOver = Minecraft.getMinecraft().objectMouseOver;
-		if (objectMouseOver != null) {
-			if (objectMouseOver.typeOfHit == MovingObjectType.ENTITY) {
-				System.out.println("Mouse is over entity!");
-			} else if (objectMouseOver.typeOfHit == MovingObjectType.BLOCK) {
-				Minecraft mc = Minecraft.getMinecraft();
-
-				BlockPos pos = objectMouseOver.getBlockPos();
-
-				Block block = mc.theWorld.getBlockState(pos).getBlock();
-
-				System.out.println("Looking at " + block.getLocalizedName());
-
-				// render wireframe
-				drawOutline(pos);
-			}
+	public void onDrawBlockHighlight(DrawBlockHighlightEvent event) {
+		if (!enabled) return;
+		
+		if (event.target != null && event.target.typeOfHit == MovingObjectType.BLOCK) {
+			drawOutline(event.target.getBlockPos(), event.partialTicks);
+			event.setCanceled(true);
 		}
 	}
 }
