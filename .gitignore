@@ -23,3 +23,5 @@ run
 
 # build script
 buildAndMine.ps1
+
+.vscode/

@@ -26,6 +26,7 @@ public class ConfigManager {
 			}
 			
 			config.endGameMsg = AutoGG.endGameMSG;
+			config.serverAddress = SlabSocketClient.serverAddress;
 
 			FileWriter writer = new FileWriter(configFile);
 			gson.toJson(config, writer);
@@ -61,6 +62,9 @@ public class ConfigManager {
 				}
 				
 				AutoGG.endGameMSG = config.endGameMsg;
+				if (config.serverAddress != null) {
+					SlabSocketClient.serverAddress = config.serverAddress;
+				}
 			}
 			System.out.println("Slab Client: Config loaded successfully!");
 		} catch (Exception e) {
@@ -72,6 +76,7 @@ public class ConfigManager {
 	private static class ClientConfig {
 		Map<String, ModuleConfig> modules = new HashMap<String, ModuleConfig>();
 		String endGameMsg = "gg";
+		String serverAddress = "127.0.0.1:8080";
 	}
 
 	private static class ModuleConfig {

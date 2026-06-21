@@ -11,6 +11,7 @@ import org.lwjgl.opengl.GL11;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.util.EnumChatFormatting;
 import scala.Int;
@@ -27,6 +28,7 @@ public class GuiMenu extends GuiScreen {
 	private List<Button> buttons = new ArrayList<Button>();
 	private Button resetButton;
 	private long lastResetClickTime = 0;
+	private GuiTextField serverAddressField;
 
 	public static int getWidth() {
 		Minecraft mc = Minecraft.getMinecraft();
@@ -78,6 +80,27 @@ public class GuiMenu extends GuiScreen {
 			}
 		};
 		buttons.add(resetButton);
+
+		// Initialize socket server input field
+		serverAddressField = new GuiTextField(999, mc.fontRendererObj, getWidth() / 2 - 120, getHeight() - 60, 150, 20);
+		serverAddressField.setMaxStringLength(128);
+		serverAddressField.setText(SlabSocketClient.serverAddress);
+
+		// Initialize connection button
+		String btnText = SlabSocketClient.status.equals("Connected") ? "Disconnect" : "Connect";
+		int btnColor = SlabSocketClient.status.equals("Connected") ? 0xFF0000 : 0x00FF00;
+		Button connectButton = new Button(btnText, getWidth() / 2 + 40, getHeight() - 60, 80, 20, btnColor);
+		connectButton.onClick = () -> {
+			if (SlabSocketClient.status.equals("Connected")) {
+				SlabSocketClient.disconnect();
+			} else {
+				SlabSocketClient.serverAddress = serverAddressField.getText();
+				ConfigManager.save();
+				SlabSocketClient.connect(SlabSocketClient.serverAddress);
+			}
+			initGui();
+		};
+		buttons.add(connectButton);
 	}
 
 	private HashMap<Long, Module> clicks = new HashMap<Long, Module>(); // time, module clicked
@@ -125,7 +148,39 @@ public class GuiMenu extends GuiScreen {
 				EnumChatFormatting.YELLOW + "Custom Commands: " + EnumChatFormatting.WHITE + "/setgg <message>",
 				getWidth() / 2, getHeight() / 2 + 40, 0xFFFFFF);
 
+		// Draw label for the text box
+		mc.fontRendererObj.drawStringWithShadow("Slab Server Address:", getWidth() / 2 - 120, getHeight() - 72, 0xFFFFFF);
+		
+		// Draw status text
+		String statusText = "Status: " + SlabSocketClient.status;
+		int statusColor = 0xAAAAAA; // Gray
+		if (SlabSocketClient.status.equals("Connected")) {
+			statusColor = 0x55FF55; // Green
+		} else if (SlabSocketClient.status.equals("Connecting...")) {
+			statusColor = 0xFFFF55; // Yellow
+		} else if (SlabSocketClient.status.equals("Failed")) {
+			statusColor = 0xFF5555; // Red
+		}
+		mc.fontRendererObj.drawStringWithShadow(statusText, getWidth() / 2 + 40, getHeight() - 72, statusColor);
+
+		// Render text field
+		if (serverAddressField != null) {
+			serverAddressField.drawTextBox();
+		}
+
 		for (Button button : buttons) {
+			if (button.text.equals("Connect") || button.text.equals("Disconnect") || button.text.equals("Connecting...") || button.text.equals("Connection Failed")) {
+				if (SlabSocketClient.status.equals("Connected")) {
+					button.text = "Disconnect";
+					button.color = 0xFF0000;
+				} else if (SlabSocketClient.status.equals("Connecting...")) {
+					button.text = "Connecting...";
+					button.color = 0xFFFF00;
+				} else {
+					button.text = "Connect";
+					button.color = 0x00FF00;
+				}
+			}
 			button.render(this, mc, mouseX, mouseY);
 		}
 
@@ -175,6 +230,9 @@ public class GuiMenu extends GuiScreen {
 			}
 		}
 
+		if (serverAddressField != null) {
+			serverAddressField.mouseClicked(x, y, buttonID);
+		}
 	}
 
 	@Override
@@ -186,4 +244,25 @@ public class GuiMenu extends GuiScreen {
 		dragging = null;
 	}
 
+	@Override
+	protected void keyTyped(char typedChar, int keyCode) throws java.io.IOException {
+		if (keyCode == 1) { // Escape key
+			super.keyTyped(typedChar, keyCode);
+			return;
+		}
+
+		if (serverAddressField != null && serverAddressField.isFocused()) {
+			serverAddressField.textboxKeyTyped(typedChar, keyCode);
+			SlabSocketClient.serverAddress = serverAddressField.getText();
+		} else {
+			super.keyTyped(typedChar, keyCode);
+		}
+	}
+
+	@Override
+	public void updateScreen() {
+		if (serverAddressField != null) {
+			serverAddressField.updateCursorCounter();
+		}
+	}
 }
