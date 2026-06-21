@@ -13,7 +13,9 @@ public class AutoSprintModule extends Module {
 		super(x, y);
 		
 		this.key = "Autosprint";
-		this.value = "On";
+		this.enabled = false;
+		this.visible = false;
+		this.value = "Disabled";
 		
 		MinecraftForge.EVENT_BUS.register(this);
 	}

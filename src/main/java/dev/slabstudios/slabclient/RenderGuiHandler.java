@@ -12,6 +12,7 @@ import dev.slabstudios.slabclient.modules.CordModule;
 import dev.slabstudios.slabclient.modules.FPSModule;
 import dev.slabstudios.slabclient.modules.FullbrightModule;
 import dev.slabstudios.slabclient.modules.PotionStatus;
+import dev.slabstudios.slabclient.modules.DamageIndicatorsModule;
 import dev.slabstudios.slabclient.modules.ServerIPModule;
 import dev.slabstudios.slabclient.modules.TimeModule;
 import net.minecraft.client.Minecraft;
@@ -32,6 +33,7 @@ public class RenderGuiHandler {
 		new TimeModule(5,5 + (modules.size()) * 10);
 		new AutoSprintModule(5,5 + (modules.size()) * 10);
 		new FullbrightModule(5,5 + (modules.size()) * 10);
+		new DamageIndicatorsModule(5,5 + (modules.size()) * 10);
 		
 		//no interface
 		//new AutoGG(5,5 + (modules.size()) * 10);

@@ -18,7 +18,7 @@ public class SlabClient {
 	public void init(FMLInitializationEvent event) {
 		// lets register events
 		MinecraftForge.EVENT_BUS.register(new RenderGuiHandler());
-		//ClientCommandHandler.instance.registerCommand(new SetAutoGGMSG());
+		ClientCommandHandler.instance.registerCommand(new SetAutoGGMSG());
 		
 		MinecraftForge.EVENT_BUS.register(new ConnectionHandler());
 		

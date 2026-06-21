@@ -2,11 +2,10 @@ package dev.slabstudios.slabclient;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
+import dev.slabstudios.slabclient.modules.AutoGG;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,13 +20,15 @@ public class ConfigManager {
 				configFile.getParentFile().mkdirs();
 			}
 			
-			Map<String, ModuleConfig> configMap = new HashMap<String, ModuleConfig>();
+			ClientConfig config = new ClientConfig();
 			for (Module module : RenderGuiHandler.modules) {
-				configMap.put(module.key, new ModuleConfig(module.enabled, module.x, module.y));
+				config.modules.put(module.key, new ModuleConfig(module.enabled, module.x, module.y));
 			}
+			
+			config.endGameMsg = AutoGG.endGameMSG;
 
 			FileWriter writer = new FileWriter(configFile);
-			gson.toJson(configMap, writer);
+			gson.toJson(config, writer);
 			writer.close();
 			System.out.println("Slab Client: Config saved successfully!");
 		} catch (Exception e) {
@@ -42,27 +43,35 @@ public class ConfigManager {
 				return;
 			}
 			
-			Type type = new TypeToken<Map<String, ModuleConfig>>(){}.getType();
 			FileReader reader = new FileReader(configFile);
-			Map<String, ModuleConfig> configMap = gson.fromJson(reader, type);
+			ClientConfig config = gson.fromJson(reader, ClientConfig.class);
 			reader.close();
 
-			if (configMap != null) {
-				for (Module module : RenderGuiHandler.modules) {
-					ModuleConfig config = configMap.get(module.key);
-					if (config != null) {
-						module.enabled = config.enabled;
-						module.visible = config.enabled;
-						module.x = config.x;
-						module.y = config.y;
+			if (config != null) {
+				if (config.modules != null) {
+					for (Module module : RenderGuiHandler.modules) {
+						ModuleConfig modConfig = config.modules.get(module.key);
+						if (modConfig != null) {
+							module.enabled = modConfig.enabled;
+							module.visible = modConfig.enabled;
+							module.x = modConfig.x;
+							module.y = modConfig.y;
+						}
 					}
 				}
+				
+				AutoGG.endGameMSG = config.endGameMsg;
 			}
 			System.out.println("Slab Client: Config loaded successfully!");
 		} catch (Exception e) {
 			System.out.println("Slab Client: Failed to load config!");
 			e.printStackTrace();
 		}
+	}
+
+	private static class ClientConfig {
+		Map<String, ModuleConfig> modules = new HashMap<String, ModuleConfig>();
+		String endGameMsg = "gg";
 	}
 
 	private static class ModuleConfig {
