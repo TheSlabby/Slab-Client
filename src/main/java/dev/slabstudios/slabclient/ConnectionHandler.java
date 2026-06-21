@@ -54,7 +54,7 @@ public class ConnectionHandler {
 					pos.addProperty("yaw", mc.thePlayer.rotationYaw);
 					pos.addProperty("pitch", mc.thePlayer.rotationPitch);
 					pos.addProperty("dimension", mc.thePlayer.dimension);
-					pos.addProperty("world_name", mc.theWorld.getWorldInfo().getWorldName());
+					pos.addProperty("world_name", ip + "///" + mc.theWorld.getWorldInfo().getWorldName());
 					
 					SlabSocketClient.send(pos.toString());
 				}

@@ -19,6 +19,7 @@ import dev.slabstudios.slabclient.modules.KeystrokesModule;
 import dev.slabstudios.slabclient.modules.ArmorStatusModule;
 import dev.slabstudios.slabclient.modules.BlockOverlayModule;
 import dev.slabstudios.slabclient.modules.PingModule;
+import dev.slabstudios.slabclient.modules.RadarModule;
 import dev.slabstudios.slabclient.modules.ServerIPModule;
 import dev.slabstudios.slabclient.modules.TimeModule;
 import net.minecraft.client.gui.ScaledResolution;
@@ -48,6 +49,7 @@ public class RenderGuiHandler {
 		
 		ScaledResolution sr = new ScaledResolution(Minecraft.getMinecraft());
 		new KeystrokesModule(sr.getScaledWidth() - 70, 5);
+		new RadarModule(sr.getScaledWidth() / 2 - 120, 10);
 		
 		new ArmorStatusModule(5, 115);
 		

@@ -11,6 +11,18 @@ import com.google.gson.JsonParser;
 
 public class SlabSocketClient {
 
+	public static class RemotePlayer {
+		public String username;
+		public String uuid;
+		public double x, y, z;
+		public float yaw, pitch;
+		public int dimension;
+		public String worldName;
+		public String serverIp;
+	}
+
+	public static volatile java.util.Map<String, RemotePlayer> remotePlayers = new java.util.HashMap<>();
+
 	public static String serverAddress = "127.0.0.1:8080";
 	public static String status = "Disconnected";
 	
@@ -129,12 +141,66 @@ public class SlabSocketClient {
 				String message = json.has("message") ? json.get("message").getAsString() : "";
 				System.out.println("[SlabSocket] Handshake result: " + statusMsg + " - " + message);
 			}
+
+			// Handle clients list broadcast from server
+			if (json.has("clients")) {
+				JsonObject clientsObj = json.getAsJsonObject("clients");
+				java.util.Map<String, RemotePlayer> newPlayers = new java.util.HashMap<>();
+				Minecraft mc = Minecraft.getMinecraft();
+				String localUuid = (mc != null && mc.thePlayer != null) ? mc.thePlayer.getUniqueID().toString() : "";
+				
+				for (java.util.Map.Entry<String, com.google.gson.JsonElement> entry : clientsObj.entrySet()) {
+					String uuid = entry.getKey();
+					if (uuid.equals(localUuid)) {
+						continue; // Skip ourselves
+					}
+					try {
+						JsonObject clientData = entry.getValue().getAsJsonObject();
+						String username = clientData.get("username").getAsString();
+						JsonObject posData = clientData.getAsJsonObject("position");
+						
+						double x = posData.get("x").getAsDouble();
+						double y = posData.get("y").getAsDouble();
+						double z = posData.get("z").getAsDouble();
+						float yaw = posData.get("yaw").getAsFloat();
+						float pitch = posData.get("pitch").getAsFloat();
+						int dimension = posData.get("dimension").getAsInt();
+						String rawWorldName = posData.get("world_name").getAsString();
+						
+						String serverIp = "";
+						String worldName = rawWorldName;
+						if (rawWorldName.contains("///")) {
+							String[] parts = rawWorldName.split("///", 2);
+							serverIp = parts[0];
+							worldName = parts[1];
+						}
+						
+						RemotePlayer rp = new RemotePlayer();
+						rp.username = username;
+						rp.uuid = uuid;
+						rp.x = x;
+						rp.y = y;
+						rp.z = z;
+						rp.yaw = yaw;
+						rp.pitch = pitch;
+						rp.dimension = dimension;
+						rp.worldName = worldName;
+						rp.serverIp = serverIp;
+						
+						newPlayers.put(uuid, rp);
+					} catch (Exception e) {
+						// Skip malformed/incomplete entry
+					}
+				}
+				remotePlayers = newPlayers;
+			}
 		} catch (Exception e) {
 			System.out.println("[SlabSocket] Failed to parse received JSON packet: " + line);
 		}
 	}
 
 	private static synchronized void cleanup() {
+		remotePlayers = new java.util.HashMap<>();
 		try {
 			if (socket != null) {
 				socket.close();
