@@ -48,7 +48,7 @@ public class PotionStatus extends Module {
 				// Draw effect name with its color and the duration in gray
 				int color = 0xFF000000 | potion.getColor();
 				guiGraphics.text(mc.font, potionDisplayText, x, yOffset, color, true);
-				guiGraphics.text(mc.font, durationText, x, yOffset + 9, 0xAAAAAA, true);
+				guiGraphics.text(mc.font, durationText, x, yOffset + 9, 0xFFAAAAAA, true);
 			}
 		}
 	}

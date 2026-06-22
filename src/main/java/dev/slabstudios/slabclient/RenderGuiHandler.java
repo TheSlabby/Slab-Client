@@ -6,7 +6,6 @@ import java.util.List;
 import org.lwjgl.glfw.GLFW;
 
 import dev.slabstudios.slabclient.modules.AutoGG;
-import dev.slabstudios.slabclient.modules.CPSModule;
 import dev.slabstudios.slabclient.modules.CordModule;
 import dev.slabstudios.slabclient.modules.FPSModule;
 import dev.slabstudios.slabclient.modules.FullbrightModule;
@@ -57,6 +56,7 @@ public class RenderGuiHandler {
 		
 		new ArmorStatusModule(5, 115);
 		new PotionStatus(5, 210);
+		new AutoGG(5, 0);
 		
 		// Load module configuration states and positions
 		ConfigManager.load();

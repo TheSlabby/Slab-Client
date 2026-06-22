@@ -7,7 +7,6 @@ public class Button {
 
 	public int x, y, sx, sy, color;
 	public String text;
-	public String action = "close"; // close is default action
 	public Runnable onClick;
 
 	public Button(String text, int x, int y, int sx, int sy, int color) {
@@ -48,8 +47,8 @@ public class Button {
 		if (isHovering(x, y)) {
 			if (onClick != null) {
 				onClick.run();
-			} else if (action.equals("close")) {
-				Minecraft.getInstance().setScreenAndShow((net.minecraft.client.gui.screens.Screen) null);
+			} else {
+				Minecraft.getInstance().setScreenAndShow(null);
 			}
 		}
 	}

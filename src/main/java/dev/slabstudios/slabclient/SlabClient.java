@@ -13,7 +13,7 @@ import net.minecraft.network.chat.Component;
 @Mod(SlabClient.MODID)
 public class SlabClient {
 	public static final String MODID = "slabclient";
-	public static final String VERSION = "2.0";
+	public static final String VERSION = "3.0";
 
 	public SlabClient(IEventBus modEventBus) {
 		// Register our event handlers

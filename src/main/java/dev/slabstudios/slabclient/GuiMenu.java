@@ -23,7 +23,6 @@ public class GuiMenu extends Screen {
 	private int dragInitY;
 	private int mouseInitX;
 	private int mouseInitY;
-	public static boolean active;
 
 	private List<Button> buttons = new ArrayList<Button>();
 	private Button resetButton;
@@ -126,7 +125,6 @@ public class GuiMenu extends Screen {
 			int count = clickMap.getOrDefault(entry.getValue(), 0) + 1;
 			clickMap.put(entry.getValue(), count);
 			if (count >= 2) {
-				System.out.println("Double click!");
 				clicks.clear();
 				entry.getValue().toggleEnabled();
 				break;
@@ -274,8 +272,6 @@ public class GuiMenu extends Screen {
 		double x = event.x();
 		double y = event.y();
 		int buttonID = event.button();
-		System.out.println("Player clicked (" + x + "," + y + ")");
-		
 		boolean moduleClicked = false;
 		
 		for (Module module : RenderGuiHandler.modules) {
@@ -286,7 +282,6 @@ public class GuiMenu extends Screen {
 				dragInitY = module.y;
 				dragging = module;
 				clicks.put(System.currentTimeMillis(), module); // so we can check for double click
-				System.out.println("Now dragging!");
 				moduleClicked = true;
 				break;
 			}

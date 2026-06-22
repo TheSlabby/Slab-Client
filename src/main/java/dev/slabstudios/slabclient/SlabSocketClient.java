@@ -109,15 +109,13 @@ public class SlabSocketClient {
 		cleanup();
 	}
 
-	public static void send(String json) {
+	public static synchronized void send(String json) {
 		if (out != null && socket != null && socket.isConnected()) {
-			new Thread(() -> {
-				try {
-					out.println(json);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}).start();
+			try {
+				out.println(json);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

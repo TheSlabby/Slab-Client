@@ -9,7 +9,7 @@ public class CordModule extends Module {
 	public CordModule(int x, int y) {
 		super(x, y);
 		
-		this.key = "XYZ";
+		this.key = "Coordinates";
 		this.value = "0, 0, 0";
 	}
 

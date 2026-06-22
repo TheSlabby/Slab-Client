@@ -4,9 +4,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
-/*
- * This is the module class for Slab Client! This is where the magic happens.
- */
 public class Module {
 
 	public String key = "KEY";
@@ -14,7 +11,6 @@ public class Module {
 	public boolean visible = true;
 	public boolean enabled = true;
 	public int x, y;
-	String text = "";
 
 	public Module(int x, int y) {
 		RenderGuiHandler.modules.add(this);

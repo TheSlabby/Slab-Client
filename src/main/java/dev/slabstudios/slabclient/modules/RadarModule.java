@@ -2,7 +2,6 @@ package dev.slabstudios.slabclient.modules;
 
 import dev.slabstudios.slabclient.Module;
 import dev.slabstudios.slabclient.SlabSocketClient;
-import dev.slabstudios.slabclient.ConnectionHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.ChatFormatting;
@@ -168,14 +167,7 @@ public class RadarModule extends Module {
 		guiGraphics.fill(x + COMPASS_WIDTH / 2 - 1, y, x + COMPASS_WIDTH / 2 + 1, y + COMPASS_HEIGHT, 0xFFFF5555);
 
 		// 5. Draw other players' indicators on the compass bar
-		String currentDimension = mc.level.dimension().identifier().toString();
-		String currentIp = ConnectionHandler.ip;
-
 		for (SlabSocketClient.RemotePlayer rp : SlabSocketClient.remotePlayers.values()) {
-			// Filter by IP and dimension
-			if (!rp.serverIp.equals(currentIp) || !rp.dimension.equals(currentDimension)) {
-				continue;
-			}
 
 			// Calculate target yaw/angle relative to local player
 			double dx = rp.x - mc.player.getX();
@@ -217,10 +209,6 @@ public class RadarModule extends Module {
 		int labelOffset = 0; // to prevent overlapping names below the bar
 
 		for (SlabSocketClient.RemotePlayer rp : SlabSocketClient.remotePlayers.values()) {
-			// Filter by IP and dimension
-			if (!rp.serverIp.equals(currentIp) || !rp.dimension.equals(currentDimension)) {
-				continue;
-			}
 
 			// Calculate target yaw/angle relative to local player
 			double dx = rp.x - mc.player.getX();

@@ -8,7 +8,7 @@ public class ServerIPModule extends Module {
 	public ServerIPModule(int x, int y) {
 		super(x, y);
 		
-		this.key = "IP";
+		this.key = "Server IP";
 		this.value = "Disconnected";
 	}
 	

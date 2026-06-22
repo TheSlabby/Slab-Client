@@ -43,7 +43,8 @@ public class ConnectionHandler {
 	@SubscribeEvent
 	public void onTick(ClientTickEvent.Post event) {
 		ticks++;
-		if (ticks % 20 == 0) { // Every 20 ticks (1 second)
+		if (ticks >= 20) {
+			ticks = 0;
 			Minecraft mc = Minecraft.getInstance();
 			if (mc.player != null && mc.level != null && SlabSocketClient.status.equals("Connected")) {
 				JsonObject pos = new JsonObject();

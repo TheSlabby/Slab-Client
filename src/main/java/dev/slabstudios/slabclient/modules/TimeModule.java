@@ -6,19 +6,16 @@ import dev.slabstudios.slabclient.Module;
 
 public class TimeModule extends Module {
 
+	private static final SimpleDateFormat formatter = new SimpleDateFormat("hh:mm a");
+
 	public TimeModule(int x, int y) {
 		super(x, y);
-
 		this.key = "Time";
 	}
 
 	@Override
 	public void update() {
-		SimpleDateFormat formatter = new SimpleDateFormat("hh:mm a");
-		Date date = new Date();
-		String time = formatter.format(date);
-		this.value = time;
-		
+		this.value = formatter.format(new Date());
 	}
 
 }
