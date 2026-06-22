@@ -3,7 +3,7 @@ package dev.slabstudios.slabclient.modules;
 import dev.slabstudios.slabclient.ConnectionHandler;
 import dev.slabstudios.slabclient.Module;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.network.NetworkPlayerInfo;
+import net.minecraft.client.multiplayer.PlayerInfo;
 
 public class PingModule extends Module {
 
@@ -17,11 +17,11 @@ public class PingModule extends Module {
 	public void update() {
 		this.visible = ConnectionHandler.remote && this.enabled;
 		if (ConnectionHandler.remote) {
-			Minecraft mc = Minecraft.getMinecraft();
-			if (mc.thePlayer != null && mc.getNetHandler() != null) {
-				NetworkPlayerInfo playerInfo = mc.getNetHandler().getPlayerInfo(mc.thePlayer.getUniqueID());
+			Minecraft mc = Minecraft.getInstance();
+			if (mc.player != null && mc.getConnection() != null) {
+				PlayerInfo playerInfo = mc.getConnection().getPlayerInfo(mc.player.getUUID());
 				if (playerInfo != null) {
-					this.value = playerInfo.getResponseTime() + "ms";
+					this.value = playerInfo.getLatency() + "ms";
 				} else {
 					this.value = "0ms";
 				}

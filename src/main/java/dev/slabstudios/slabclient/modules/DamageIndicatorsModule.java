@@ -5,19 +5,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.lwjgl.opengl.GL11;
 
 import dev.slabstudios.slabclient.Module;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraftforge.client.event.RenderWorldLastEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import net.neoforged.neoforge.common.NeoForge;
 
 public class DamageIndicatorsModule extends Module {
 
@@ -33,7 +31,7 @@ public class DamageIndicatorsModule extends Module {
 		this.value = "Enabled";
 		this.visible = true;
 		
-		MinecraftForge.EVENT_BUS.register(this);
+		NeoForge.EVENT_BUS.register(this);
 	}
 
 	@Override
@@ -46,16 +44,15 @@ public class DamageIndicatorsModule extends Module {
 	}
 
 	@SubscribeEvent
-	public void onClientTick(TickEvent.ClientTickEvent event) {
+	public void onClientTick(ClientTickEvent.Post event) {
 		if (!enabled) return;
-		if (event.phase != TickEvent.Phase.START) return;
 
 		synchronized (indicators) {
 			Iterator<DamageIndicator> iterator = indicators.iterator();
 			while (iterator.hasNext()) {
 				DamageIndicator ind = iterator.next();
 				ind.age++;
-				if (ind.age >= 10) {
+				if (ind.age >= 20) {
 					iterator.remove();
 					continue;
 				}
@@ -77,37 +74,38 @@ public class DamageIndicatorsModule extends Module {
 	}
 
 	@SubscribeEvent
-	public void onEntityUpdate(LivingUpdateEvent event) {
-		if (event.entityLiving == null || !event.entityLiving.worldObj.isRemote) return;
+	public void onEntityTick(EntityTickEvent.Post event) {
 		if (!enabled) return;
 
-		EntityLivingBase entity = event.entityLiving;
-		if (entity == Minecraft.getMinecraft().thePlayer) return;
+		Entity entity = event.getEntity();
+		if (!(entity instanceof LivingEntity living)) return;
+		if (!living.level().isClientSide()) return;
+		
+		Minecraft mc = Minecraft.getInstance();
+		if (living == mc.player) return;
 
-		int id = entity.getEntityId();
-		float health = entity.getHealth();
+		int id = living.getId();
+		float health = living.getHealth();
 
 		if (entityHealthMap.containsKey(id)) {
 			float oldHealth = entityHealthMap.get(id);
 			if (health < oldHealth) {
 				float damage = oldHealth - health;
 				
-				Minecraft mc = Minecraft.getMinecraft();
 				double dx = 0;
 				double dz = 0;
-				double spawnX = entity.posX;
-				double spawnY = entity.posY + entity.height + 0.4;
-				double spawnZ = entity.posZ;
+				double spawnX = living.getX();
+				double spawnY = living.getY() + living.getBbHeight() + 0.4;
+				double spawnZ = living.getZ();
 
-				if (mc.thePlayer != null) {
-					dx = entity.posX - mc.thePlayer.posX;
-					dz = entity.posZ - mc.thePlayer.posZ;
+				if (mc.player != null) {
+					dx = living.getX() - mc.player.getX();
+					dz = living.getZ() - mc.player.getZ();
 					double len = Math.sqrt(dx * dx + dz * dz);
 					if (len > 0.0) {
 						dx /= len;
 						dz /= len;
-						// Offset past the entity's bounding box radius to place clearly on the far side
-						double offset = entity.width * 1.6;
+						double offset = living.getBbWidth() * 1.6;
 						spawnX += dx * offset;
 						spawnZ += dz * offset;
 					}
@@ -130,66 +128,72 @@ public class DamageIndicatorsModule extends Module {
 		}
 	}
 
-	@SubscribeEvent
-	public void onRenderWorldLast(RenderWorldLastEvent event) {
-		if (!enabled) return;
+	@Override
+	public void render(GuiGraphicsExtractor guiGraphics, boolean force) {
+		if (!visible && !force) return;
 
-		Minecraft mc = Minecraft.getMinecraft();
-		EntityPlayerSP player = mc.thePlayer;
-		if (player == null) return;
+		if (force) {
+			super.render(guiGraphics, true);
+			return;
+		}
 
-		double renderX = player.prevPosX + (player.posX - player.prevPosX) * event.partialTicks;
-		double renderY = player.prevPosY + (player.posY - player.prevPosY) * event.partialTicks;
-		double renderZ = player.prevPosZ + (player.posZ - player.prevPosZ) * event.partialTicks;
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null) return;
+
+		float partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
+		net.minecraft.client.Camera camera = mc.gameRenderer.mainCamera();
+		net.minecraft.world.phys.Vec3 camPos = camera.position();
+		
+		org.joml.Vector3fc forward = camera.forwardVector();
+		org.joml.Vector3fc up = camera.upVector();
+		org.joml.Vector3fc left = camera.leftVector();
+		
+		double fov = mc.options.fov().get();
+		double halfWidth = mc.getWindow().getGuiScaledWidth() / 2.0;
+		double halfHeight = mc.getWindow().getGuiScaledHeight() / 2.0;
+		double fovFactor = halfHeight / Math.tan(Math.toRadians(fov) / 2.0);
 
 		synchronized (indicators) {
 			for (DamageIndicator ind : indicators) {
 				// Interpolate positions to eliminate camera jitter/flicker
-				double x = (ind.prevX + (ind.x - ind.prevX) * event.partialTicks) - renderX;
-				double y = (ind.prevY + (ind.y - ind.prevY) * event.partialTicks) - renderY;
-				double z = (ind.prevZ + (ind.z - ind.prevZ) * event.partialTicks) - renderZ;
+				double x = ind.prevX + (ind.x - ind.prevX) * partialTicks;
+				double y = ind.prevY + (ind.y - ind.prevY) * partialTicks;
+				double z = ind.prevZ + (ind.z - ind.prevZ) * partialTicks;
 
-				GlStateManager.pushMatrix();
-				GlStateManager.translate(x, y, z); 
-				GL11.glNormal3f(0.0F, 1.0F, 0.0F);
-				GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
-				GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
-				
-				float ageInterpolated = ind.age + event.partialTicks;
-				
+				// Relative to camera position
+				double dx = x - camPos.x;
+				double dy = y - camPos.y;
+				double dz = z - camPos.z;
+
+				// Project onto camera local axes
+				double localForward = dx * forward.x() + dy * forward.y() + dz * forward.z();
+				if (localForward <= 0) continue; // Behind camera
+
+				double localUp = dx * up.x() + dy * up.y() + dz * up.z();
+				double localRight = -(dx * left.x() + dy * left.y() + dz * left.z());
+
+				// Project to screen space
+				float screenX = (float) (halfWidth + (localRight / localForward) * fovFactor);
+				float screenY = (float) (halfHeight - (localUp / localForward) * fovFactor);
+
+				float ageInterpolated = ind.age + partialTicks;
 				float scaleMultiplier = 1.0F;
 				float alpha = 1.0F;
 
-				if (ageInterpolated < 2.0F) {
-					// Pop up with overshoot (0.10s)
-					float progress = ageInterpolated / 2.0F;
+				if (ageInterpolated < 3.0F) {
+					float progress = ageInterpolated / 3.0F;
 					float ease = 1.0F - (float) Math.pow(1.0F - progress, 3);
 					scaleMultiplier = ease * 1.5F;
-				} else if (ageInterpolated < 4.0F) {
-					// Smooth settle to 1.0 (0.10s)
-					float progress = (ageInterpolated - 2.0F) / 2.0F;
+				} else if (ageInterpolated < 6.0F) {
+					float progress = (ageInterpolated - 3.0F) / 3.0F;
 					float ease = (float) (Math.cos(progress * Math.PI) + 1.0) / 2.0F;
 					scaleMultiplier = 1.0F + ease * 0.5F;
 				} else {
-					// Snappy shrink and fade over the last 6 ticks (from tick 4 to 10) (0.30s)
-					float progress = (ageInterpolated - 4.0F) / 6.0F;
+					float progress = (ageInterpolated - 6.0F) / 14.0F;
 					if (progress > 1.0F) progress = 1.0F;
 					scaleMultiplier = 1.0F - progress;
 					alpha = 1.0F - progress;
 				}
-
-				// Apply roll rotation (Z rotation in screen-space, upright by tick 4)
-				float currentRoll = ind.roll * (1.0F - Math.min(1.0F, ageInterpolated / 4.0F));
-				GlStateManager.rotate(currentRoll, 0.0F, 0.0F, 1.0F);
-
-				float scaleFactor = -0.03F * scaleMultiplier; 
-				GlStateManager.scale(scaleFactor, scaleFactor, Math.abs(scaleFactor));
-				
-				GlStateManager.disableLighting();
-				GlStateManager.depthMask(false);
-				GlStateManager.disableDepth();
-				GlStateManager.enableBlend();
-				GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
 
 				int alphaBits = (int) (alpha * 255) & 0xFF;
 				int color = (alphaBits << 24) | 0xFFCC00;
@@ -197,24 +201,25 @@ public class DamageIndicatorsModule extends Module {
 
 				String numberText = String.format("-%.1f", ind.damage);
 				String heartText = " ❤";
-				int numWidth = mc.fontRendererObj.getStringWidth(numberText);
-				int heartWidth = mc.fontRendererObj.getStringWidth(heartText);
+				int numWidth = mc.font.width(numberText);
+				int heartWidth = mc.font.width(heartText);
 				int totalWidth = numWidth + heartWidth;
 
-				mc.fontRendererObj.drawStringWithShadow(numberText, -totalWidth / 2, 0, color);
-				mc.fontRendererObj.drawStringWithShadow(heartText, -totalWidth / 2 + numWidth, 0, heartColor);
+				guiGraphics.pose().pushMatrix();
+				guiGraphics.pose().translate((float) screenX, (float) screenY);
+				guiGraphics.pose().scale(scaleMultiplier, scaleMultiplier);
 
-				GlStateManager.enableDepth();
-				GlStateManager.depthMask(true);
-				GlStateManager.enableLighting();
-				GlStateManager.disableBlend();
-				GlStateManager.popMatrix();
+				// Draw projected nameplate text at screen position
+				guiGraphics.text(mc.font, numberText, -totalWidth / 2, -4, color, true);
+				guiGraphics.text(mc.font, heartText, -totalWidth / 2 + numWidth, -4, heartColor, true);
+
+				guiGraphics.pose().popMatrix();
 			}
 		}
 	}
 
 	@SubscribeEvent
-	public void onDisconnect(ClientDisconnectionFromServerEvent event) {
+	public void onDisconnect(ClientPlayerNetworkEvent.LoggingOut event) {
 		synchronized (indicators) {
 			indicators.clear();
 		}

@@ -16,7 +16,7 @@ public class SlabSocketClient {
 		public String uuid;
 		public double x, y, z;
 		public float yaw, pitch;
-		public int dimension;
+		public String dimension;
 		public String worldName;
 		public String serverIp;
 	}
@@ -61,13 +61,13 @@ public class SlabSocketClient {
 					status = "Connected";
 					
 					// Send a handshake packet in JSON with player details
-					Minecraft mc = Minecraft.getMinecraft();
+					Minecraft mc = Minecraft.getInstance();
 					JsonObject handshake = new JsonObject();
 					handshake.addProperty("type", "handshake");
 					handshake.addProperty("version", SlabClient.VERSION);
-					if (mc != null && mc.thePlayer != null) {
-						handshake.addProperty("uuid", mc.thePlayer.getUniqueID().toString());
-						handshake.addProperty("username", mc.thePlayer.getName());
+					if (mc != null && mc.player != null) {
+						handshake.addProperty("uuid", mc.player.getUUID().toString());
+						handshake.addProperty("username", mc.player.getName().getString());
 					} else {
 						handshake.addProperty("uuid", "offline-uuid-test");
 						handshake.addProperty("username", "Player");
@@ -146,8 +146,8 @@ public class SlabSocketClient {
 			if (json.has("clients")) {
 				JsonObject clientsObj = json.getAsJsonObject("clients");
 				java.util.Map<String, RemotePlayer> newPlayers = new java.util.HashMap<>();
-				Minecraft mc = Minecraft.getMinecraft();
-				String localUuid = (mc != null && mc.thePlayer != null) ? mc.thePlayer.getUniqueID().toString() : "";
+				Minecraft mc = Minecraft.getInstance();
+				String localUuid = (mc != null && mc.player != null) ? mc.player.getUUID().toString() : "";
 				
 				for (java.util.Map.Entry<String, com.google.gson.JsonElement> entry : clientsObj.entrySet()) {
 					String uuid = entry.getKey();
@@ -164,7 +164,7 @@ public class SlabSocketClient {
 						double z = posData.get("z").getAsDouble();
 						float yaw = posData.get("yaw").getAsFloat();
 						float pitch = posData.get("pitch").getAsFloat();
-						int dimension = posData.get("dimension").getAsInt();
+						String dimension = posData.get("dimension").getAsString();
 						String rawWorldName = posData.get("world_name").getAsString();
 						
 						String serverIp = "";

@@ -1,10 +1,7 @@
 package dev.slabstudios.slabclient;
 
-import org.lwjgl.opengl.GL11;
-
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public class Button {
 
@@ -22,7 +19,7 @@ public class Button {
 		this.text = text;
 	}
 
-	public void render(GuiScreen screen, Minecraft mc, int mx, int my) {
+	public void render(GuiGraphicsExtractor guiGraphics, Minecraft mc, int mx, int my) {
 		int finalColor = this.color;
 		if (isHovering(mx, my)) {
 			finalColor = finalColor + 0xFF000000;
@@ -30,16 +27,15 @@ public class Button {
 			finalColor = finalColor + 0x7F000000;
 		}
 
-		Gui.drawRect(x, y, x+sx, y+sy, finalColor);
+		guiGraphics.fill(x, y, x + sx, y + sy, finalColor);
 		
 		// render text
-		GL11.glPushMatrix();
 		float scale = (float) (sy * .04);
-		GL11.glScalef(scale, scale, scale);
-		screen.drawCenteredString(mc.fontRendererObj, text, (int) ((x + sx / 2) / scale),
-				(int) ((y + sy / 2 - (4 * scale)) / scale), 0xFFFFFF);
-		GL11.glPopMatrix();
-
+		guiGraphics.pose().pushMatrix();
+		guiGraphics.pose().scale(scale, scale);
+		guiGraphics.centeredText(mc.font, text, (int) ((x + sx / 2) / scale),
+				(int) ((y + sy / 2 - (4 * scale)) / scale), 0xFFFFFFFF);
+		guiGraphics.pose().popMatrix();
 	}
 
 	public boolean isHovering(int x, int y) {
@@ -53,7 +49,7 @@ public class Button {
 			if (onClick != null) {
 				onClick.run();
 			} else if (action.equals("close")) {
-				Minecraft.getMinecraft().displayGuiScreen((GuiScreen) null);
+				Minecraft.getInstance().setScreenAndShow((net.minecraft.client.gui.screens.Screen) null);
 			}
 		}
 	}

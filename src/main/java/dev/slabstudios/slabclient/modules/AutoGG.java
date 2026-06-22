@@ -9,9 +9,10 @@ import org.apache.commons.io.IOUtils;
 import dev.slabstudios.slabclient.ConnectionHandler;
 import dev.slabstudios.slabclient.Module;
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.client.event.ClientChatReceivedEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.neoforged.neoforge.client.event.ClientChatReceivedEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.bus.api.SubscribeEvent;
 
 public class AutoGG extends Module {
 
@@ -23,11 +24,11 @@ public class AutoGG extends Module {
 
 	public AutoGG(int x, int y) {
 		super(x, y);
-		this.visible = false; // it works in the background lmao
+		this.visible = false; // it works in the background
 		this.key = "AutoGG";
 		this.value = "Enabled";
 		
-		MinecraftForge.EVENT_BUS.register(this);
+		NeoForge.EVENT_BUS.register(this);
 
 		// Initialize with default fallback Hypixel triggers to prevent crashes and handle 404s
 		this.triggers = new ArrayList<String>(Arrays.asList(
@@ -49,7 +50,7 @@ public class AutoGG extends Module {
 			public void run() {
 				try {
 					final String rawTriggers = IOUtils.toString(new URL(
-							"https://gist.githubusercontent.com/minemanpi/72c38b0023f5062a5f3eba02a5132603/raw/triggers.txt"));
+							"https://gist.githubusercontent.com/minemanpi/72c38b0023f5062a5f3eba02a5132603/raw/triggers.txt"), "UTF-8");
 					ArrayList<String> loadedTriggers = new ArrayList<String>(Arrays.asList(rawTriggers.split("\n")));
 					if (!loadedTriggers.isEmpty()) {
 						triggers = loadedTriggers;
@@ -63,26 +64,30 @@ public class AutoGG extends Module {
 
 	@SubscribeEvent
 	public void onChat(ClientChatReceivedEvent event) {
-		// event.type: 0 is chat, 1 is system message, 2 is action bar. 
-		// We only want system messages (type != 0) to prevent players from spoofing endgame messages in chat.
-		if (event.type != 0 && ConnectionHandler.ip.equalsIgnoreCase("mc.hypixel.net") && enabled && (cooldown == 0 || cooldown + cooldownTime < Minecraft.getSystemTime())) {
-
-			String msg = event.message.getUnformattedText().trim();
-			System.out.println(msg);
-			for (String trigger : triggers) {
-				if (msg.startsWith(trigger.trim())) {
-					Minecraft.getMinecraft().thePlayer.sendChatMessage("/achat " + endGameMSG);
-					cooldown = Minecraft.getSystemTime();
-					break;
+		// Only want system/server messages to prevent players from spoofing endgame messages in chat.
+		if (event.isSystem() && ConnectionHandler.ip.equalsIgnoreCase("mc.hypixel.net") && enabled) {
+			long now = System.currentTimeMillis();
+			if (cooldown == 0 || cooldown + cooldownTime < now) {
+				String msg = event.getMessage().getString().trim();
+				System.out.println(msg);
+				for (String trigger : triggers) {
+					if (msg.startsWith(trigger.trim())) {
+						Minecraft mc = Minecraft.getInstance();
+						if (mc.player != null && mc.player.connection != null) {
+							mc.player.connection.sendChat("/achat " + endGameMSG);
+							cooldown = now;
+						}
+						break;
+					}
 				}
 			}
 		}
 	}
 	
 	@Override
-	public void render(boolean forced) {
-		if(forced) {
-			super.render(true);
+	public void render(GuiGraphicsExtractor guiGraphics, boolean forced) {
+		if (forced) {
+			super.render(guiGraphics, true);
 		}
 	}
 

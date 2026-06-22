@@ -2,9 +2,9 @@ package dev.slabstudios.slabclient.modules;
 
 import dev.slabstudios.slabclient.Module;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.item.ItemStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
 
 public class ArmorStatusModule extends Module {
 
@@ -25,50 +25,54 @@ public class ArmorStatusModule extends Module {
 	}
 
 	@Override
-	public void render(boolean force) {
+	public void render(GuiGraphicsExtractor guiGraphics, boolean force) {
 		if (!visible && !force) return;
 
-		Minecraft mc = Minecraft.getMinecraft();
-		if (mc.thePlayer == null) return;
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null) return;
 
 		int itemY = y;
 		
-		// Set up GUI rendering states for items
-		GlStateManager.pushMatrix();
-		RenderHelper.enableGUIStandardItemLighting();
-		GlStateManager.enableDepth();
-
-		// 1. Render armor from Helmet (index 3) down to Boots (index 0)
-		for (int i = 3; i >= 0; i--) {
-			ItemStack stack = mc.thePlayer.inventory.armorInventory[i];
-			if (stack != null) {
-				renderItemSlot(mc, stack, x, itemY);
+		// 1. Render armor from Helmet down to Boots
+		EquipmentSlot[] armorSlots = {
+			EquipmentSlot.HEAD,
+			EquipmentSlot.CHEST,
+			EquipmentSlot.LEGS,
+			EquipmentSlot.FEET
+		};
+		for (EquipmentSlot slot : armorSlots) {
+			ItemStack stack = mc.player.getItemBySlot(slot);
+			if (stack != null && !stack.isEmpty()) {
+				renderItemSlot(guiGraphics, mc, stack, x, itemY);
 				itemY += 18;
 			}
 		}
 
 		// 2. Render currently held main hand item
-		ItemStack handStack = mc.thePlayer.getCurrentEquippedItem();
-		if (handStack != null) {
-			renderItemSlot(mc, handStack, x, itemY);
+		ItemStack mainHand = mc.player.getItemBySlot(EquipmentSlot.MAINHAND);
+		if (mainHand != null && !mainHand.isEmpty()) {
+			renderItemSlot(guiGraphics, mc, mainHand, x, itemY);
 			itemY += 18;
 		}
 
-		RenderHelper.disableStandardItemLighting();
-		GlStateManager.disableDepth();
-		GlStateManager.popMatrix();
+		// 3. Render currently held off hand item
+		ItemStack offHand = mc.player.getItemBySlot(EquipmentSlot.OFFHAND);
+		if (offHand != null && !offHand.isEmpty()) {
+			renderItemSlot(guiGraphics, mc, offHand, x, itemY);
+			itemY += 18;
+		}
 	}
 
-	private void renderItemSlot(Minecraft mc, ItemStack stack, int itemX, int itemY) {
+	private void renderItemSlot(GuiGraphicsExtractor guiGraphics, Minecraft mc, ItemStack stack, int itemX, int itemY) {
 		// Render the item icon
-		mc.getRenderItem().renderItemAndEffectIntoGUI(stack, itemX, itemY);
+		guiGraphics.item(stack, itemX, itemY);
 		// Render standard vanilla overlay (durability bar / stack size)
-		mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, stack, itemX, itemY);
+		guiGraphics.itemDecorations(mc.font, stack, itemX, itemY);
 
 		// Render custom durability text beside the item
-		if (stack.isItemStackDamageable()) {
+		if (stack.isDamageableItem()) {
 			int maxDamage = stack.getMaxDamage();
-			int currentDamage = stack.getItemDamage();
+			int currentDamage = stack.getDamageValue();
 			int durability = maxDamage - currentDamage;
 			
 			float pct = (float) durability / (float) maxDamage;
@@ -80,11 +84,11 @@ public class ArmorStatusModule extends Module {
 			}
 
 			String text = String.valueOf(durability);
-			mc.fontRendererObj.drawStringWithShadow(text, itemX + 20, itemY + 4, color);
-		} else if (stack.stackSize > 1) {
+			guiGraphics.text(mc.font, text, itemX + 20, itemY + 4, color, true);
+		} else if (stack.getCount() > 1) {
 			// If not damageable but stacked (e.g. food/potions), show stack size next to it
-			String text = "x" + stack.stackSize;
-			mc.fontRendererObj.drawStringWithShadow(text, itemX + 20, itemY + 4, 0xFFFFFFFF);
+			String text = "x" + stack.getCount();
+			guiGraphics.text(mc.font, text, itemX + 20, itemY + 4, 0xFFFFFFFF, true);
 		}
 	}
 
@@ -95,10 +99,8 @@ public class ArmorStatusModule extends Module {
 
 	@Override
 	public int getHeight() {
-		// We dynamically compute height based on how many items are currently equipped,
-		// or use a fixed size to allocate bounding box space.
-		// Standard maximum height is 5 items * 18 = 90. Let's return that.
-		return 90;
+		// Standard maximum height is 6 items * 18 = 108.
+		return 108;
 	}
 
 }

@@ -2,11 +2,11 @@ package dev.slabstudios.slabclient.modules;
 
 import dev.slabstudios.slabclient.Module;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.util.Vec3;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.player.AttackEntityEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.bus.api.SubscribeEvent;
 
 public class ReachModule extends Module {
 
@@ -18,8 +18,8 @@ public class ReachModule extends Module {
 		this.key = "Reach";
 		this.value = "0.00m";
 		this.visible = true;
-
-		MinecraftForge.EVENT_BUS.register(this);
+		
+		NeoForge.EVENT_BUS.register(this);
 	}
 
 	@Override
@@ -39,18 +39,18 @@ public class ReachModule extends Module {
 
 	@SubscribeEvent
 	public void onAttack(AttackEntityEvent event) {
-		if (event.entityPlayer == null || !event.entityPlayer.worldObj.isRemote) return;
+		if (event.getEntity() == null || !event.getEntity().level().isClientSide()) return;
 		if (!enabled) return;
 
-		Minecraft mc = Minecraft.getMinecraft();
-		if (mc.thePlayer == null) return;
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null) return;
 
-		if (event.entityPlayer == mc.thePlayer && event.target instanceof EntityLivingBase) {
-			EntityLivingBase target = (EntityLivingBase) event.target;
+		if (event.getEntity() == mc.player && event.getTarget() instanceof LivingEntity) {
+			LivingEntity target = (LivingEntity) event.getTarget();
 			
 			// Compute eye-to-eye reach distance
-			Vec3 playerEyes = mc.thePlayer.getPositionEyes(1.0F);
-			Vec3 targetEyes = new Vec3(target.posX, target.posY + target.getEyeHeight(), target.posZ);
+			Vec3 playerEyes = mc.player.getEyePosition(1.0F);
+			Vec3 targetEyes = target.getEyePosition(1.0F);
 			
 			this.lastReach = playerEyes.distanceTo(targetEyes);
 			this.lastHitTime = System.currentTimeMillis();

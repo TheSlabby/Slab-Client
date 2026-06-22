@@ -2,7 +2,7 @@ package dev.slabstudios.slabclient.modules;
 
 import dev.slabstudios.slabclient.Module;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.BlockPos;
+import net.minecraft.core.BlockPos;
 
 public class CordModule extends Module {
 
@@ -15,8 +15,11 @@ public class CordModule extends Module {
 
 	@Override
 	public void update() {
-		BlockPos coords = Minecraft.getMinecraft().thePlayer.getPosition();
-		this.value = coords.getX() + ", " + coords.getY() + ", " + coords.getZ();
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player != null) {
+			BlockPos coords = mc.player.blockPosition();
+			this.value = coords.getX() + ", " + coords.getY() + ", " + coords.getZ();
+		}
 	}
 
 }

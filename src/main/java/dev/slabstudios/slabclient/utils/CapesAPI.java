@@ -1,17 +1,10 @@
 package dev.slabstudios.slabclient.utils;
 
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.IImageBuffer;
-import net.minecraft.client.renderer.ThreadDownloadImageData;
-import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class CapesAPI {
 
@@ -25,56 +18,25 @@ public class CapesAPI {
 	 */
 	private static final ArrayList<UUID> pendingRequests = new ArrayList<UUID>();
 
-	private static final Map<UUID, ResourceLocation> capes = new HashMap<UUID, ResourceLocation>();
+	private static final Map<UUID, Identifier> capes = new HashMap<UUID, Identifier>();
 
 	/**
-	 * Fetches a cape for the given player and stores it's ResourceLocation in the
+	 * Fetches a cape for the given player and stores it's Identifier in the
 	 * capes map
 	 *
 	 * @param uuid UUID of the player to load the cape for
 	 */
 	public static void loadCape(final UUID uuid) {
-
-		if (CapesAPI.hasPendingRequests(uuid)) {
-			return;
-		}
-
-		CapesAPI.setCape(uuid, null);
-		String url = String.format(CapesAPI.BASE_URL, uuid);
-		System.out.println("Fetching: "+url);
-		final ResourceLocation resourceLocation = new ResourceLocation(
-				String.format("capesapi/capes/%s.png", new Date().getTime()));
-		TextureManager textureManager = Minecraft.getMinecraft().getTextureManager();
-		ThreadDownloadImageData threadDownloadImageData = new ThreadDownloadImageData(null, url, null,
-				new IImageBuffer() {
-					@Override
-					public BufferedImage parseUserSkin(BufferedImage image) {
-
-						return image;
-					}
-
-					@Override
-					public void skinAvailable() {
-
-						CapesAPI.setCape(uuid, resourceLocation);
-
-						// useless reloading Image whenever a Player dies, joins, leaves and re-enters
-						// Render range
-						// CapesAPI.pendingRequests.remove(uuid);
-					}
-				});
-		textureManager.loadTexture(resourceLocation, threadDownloadImageData);
-		CapesAPI.pendingRequests.add(uuid);
+		// Stubbed out for Minecraft 26.2 compatibility as CapesAPI is unused
 	}
 
 	/**
 	 * Set the cape of a player
 	 *
 	 * @param uuid             UUID of the Player to store the cape for
-	 * @param resourceLocation ResourceLocation of the cape
+	 * @param resourceLocation Identifier of the cape
 	 */
-	public static void setCape(UUID uuid, ResourceLocation resourceLocation) {
-
+	public static void setCape(UUID uuid, Identifier resourceLocation) {
 		CapesAPI.capes.put(uuid, resourceLocation);
 	}
 
@@ -82,17 +44,15 @@ public class CapesAPI {
 	 * Remove the cape of the user from the cape hashmap
 	 */
 	public static void deleteCape(UUID uuid) {
-
 		CapesAPI.capes.remove(uuid);
 	}
 
 	/**
 	 * Get the cape of the user from the cape hashmap
 	 *
-	 * @return ResourceLocation of the cape or null if none was found
+	 * @return Identifier of the cape or null if none was found
 	 */
-	public static ResourceLocation getCape(UUID uuid) {
-
+	public static Identifier getCape(UUID uuid) {
 		return capes.getOrDefault(uuid, null);
 	}
 
@@ -104,9 +64,8 @@ public class CapesAPI {
 	 * @return true if the player has a cape, otherwise false
 	 */
 	public static boolean hasCape(UUID uuid) {
-
 		boolean hasCape = CapesAPI.capes.containsKey(uuid);
-		ResourceLocation resourceLocation = CapesAPI.capes.get(uuid);
+		Identifier resourceLocation = CapesAPI.capes.get(uuid);
 
 		if (hasCape && resourceLocation == null && !CapesAPI.hasPendingRequests(uuid)) {
 			CapesAPI.loadCape(uuid);
@@ -121,7 +80,6 @@ public class CapesAPI {
 	 * they are in range
 	 */
 	public static void resetCapes() {
-
 		for (UUID userId : CapesAPI.capes.keySet()) {
 			CapesAPI.capes.put(userId, null);
 		}
@@ -134,7 +92,6 @@ public class CapesAPI {
 	 * @return true if the player's cape is currently being fetched, false otherwise
 	 */
 	private static boolean hasPendingRequests(UUID uuid) {
-
 		return CapesAPI.pendingRequests.contains(uuid);
 	}
 

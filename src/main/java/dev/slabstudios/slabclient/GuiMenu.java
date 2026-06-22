@@ -3,21 +3,21 @@ package dev.slabstudios.slabclient;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
-import org.lwjgl.opengl.GL11;
-
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiTextField;
-import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.util.EnumChatFormatting;
-import scala.Int;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
 
-public class GuiMenu extends GuiScreen {
+public class GuiMenu extends Screen {
 
+	private final Minecraft mc = Minecraft.getInstance();
 	private Module dragging;
 	private int dragInitX;
 	private int dragInitY;
@@ -28,35 +28,32 @@ public class GuiMenu extends GuiScreen {
 	private List<Button> buttons = new ArrayList<Button>();
 	private Button resetButton;
 	private long lastResetClickTime = 0;
-	private GuiTextField serverAddressField;
+	private EditBox serverAddressField;
 	private int scrollOffset = 0;
 	private int lastMouseX = 0;
 	private int lastMouseY = 0;
 
-	public static int getWidth() {
-		Minecraft mc = Minecraft.getMinecraft();
-		return new ScaledResolution(mc).getScaledWidth();
-	}
-
-	public static int getHeight() {
-		Minecraft mc = Minecraft.getMinecraft();
-		return new ScaledResolution(mc).getScaledHeight();
+	public GuiMenu() {
+		super(Component.literal("Slab Client Menu"));
 	}
 
 	@Override
-	public void initGui() {
+	protected void init() {
 		buttons.clear();
-		buttons.add(new Button("Close", getWidth() / 2 - 100, getHeight() - 30, 95, 20, 0xFF0000));
+		buttons.add(new Button("Close", width / 2 - 100, height - 30, 95, 20, 0xFF0000));
 
-		resetButton = new Button("Reset Layout", getWidth() / 2 + 5, getHeight() - 30, 95, 20, 0x0000FF);
+		resetButton = new Button("Reset Layout", width / 2 + 5, height - 30, 95, 20, 0x0000FF);
 		resetButton.onClick = () -> {
-			long now = Minecraft.getSystemTime();
+			long now = System.currentTimeMillis();
 			if (now - lastResetClickTime < 3000) {
 				// Reset all layout positions to default
 				for (Module module : RenderGuiHandler.modules) {
 					if (module.key.equals("Keystrokes")) {
-						module.x = getWidth() - 70;
+						module.x = width - 70;
 						module.y = 5;
+					} else if (module.key.equals("Radar")) {
+						module.x = width / 2 - 120;
+						module.y = 10;
 					} else {
 						module.x = 5;
 						if (module.key.equals("FPS")) module.y = 5;
@@ -64,7 +61,6 @@ public class GuiMenu extends GuiScreen {
 						else if (module.key.equals("Server IP")) module.y = 25;
 						else if (module.key.equals("Ping")) module.y = 35;
 						else if (module.key.equals("Time")) module.y = 45;
-						else if (module.key.equals("Autosprint")) module.y = 55;
 						else if (module.key.equals("Fullbright")) module.y = 65;
 						else if (module.key.equals("Damage Indicators")) module.y = 75;
 						else if (module.key.equals("Reach")) module.y = 85;
@@ -85,23 +81,27 @@ public class GuiMenu extends GuiScreen {
 		buttons.add(resetButton);
 
 		// Initialize socket server input field
-		serverAddressField = new GuiTextField(999, mc.fontRendererObj, getWidth() / 2 - 120, getHeight() - 60, 150, 20);
-		serverAddressField.setMaxStringLength(128);
-		serverAddressField.setText(SlabSocketClient.serverAddress);
+		serverAddressField = new EditBox(mc.font, width / 2 - 120, height - 60, 150, 20, Component.literal("Server Address"));
+		serverAddressField.setMaxLength(128);
+		serverAddressField.setValue(SlabSocketClient.serverAddress);
+		serverAddressField.setResponder(text -> SlabSocketClient.serverAddress = text);
+		serverAddressField.setTextColor(0xFFFFFFFF);
+		serverAddressField.setTextColorUneditable(0xFFE0E0E0);
+		this.addRenderableWidget(serverAddressField);
 
 		// Initialize connection button
 		String btnText = SlabSocketClient.status.equals("Connected") ? "Disconnect" : "Connect";
 		int btnColor = SlabSocketClient.status.equals("Connected") ? 0xFF0000 : 0x00FF00;
-		Button connectButton = new Button(btnText, getWidth() / 2 + 40, getHeight() - 60, 80, 20, btnColor);
+		Button connectButton = new Button(btnText, width / 2 + 40, height - 60, 80, 20, btnColor);
 		connectButton.onClick = () -> {
 			if (SlabSocketClient.status.equals("Connected")) {
 				SlabSocketClient.disconnect();
 			} else {
-				SlabSocketClient.serverAddress = serverAddressField.getText();
+				SlabSocketClient.serverAddress = serverAddressField.getValue();
 				ConfigManager.save();
 				SlabSocketClient.connect(SlabSocketClient.serverAddress);
 			}
-			initGui();
+			init();
 		};
 		buttons.add(connectButton);
 	}
@@ -109,15 +109,17 @@ public class GuiMenu extends GuiScreen {
 	private HashMap<Long, Module> clicks = new HashMap<Long, Module>(); // time, module clicked
 
 	@Override
-	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+	public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
+
 		// Reset layout button confirmation timeout
-		if (lastResetClickTime > 0 && Minecraft.getSystemTime() - lastResetClickTime > 3000) {
+		long now = System.currentTimeMillis();
+		if (lastResetClickTime > 0 && now - lastResetClickTime > 3000) {
 			resetButton.text = "Reset Layout";
 			lastResetClickTime = 0;
 		}
 
 		// check if any modules have been double clicked
-		clicks.keySet().removeIf(time -> time + 500 < Minecraft.getSystemTime());
+		clicks.keySet().removeIf(time -> time + 500 < now);
 
 		HashMap<Module, Integer> clickMap = new HashMap<Module, Integer>();
 		for (Entry<Long, Module> entry : clicks.entrySet()) {
@@ -132,41 +134,41 @@ public class GuiMenu extends GuiScreen {
 		}
 
 		// render slab client logo
-		Gui.drawRect(0, 0, getWidth(), getHeight(), 0x7F000000);
+		guiGraphics.fill(0, 0, width, height, 0x7F000000);
 
 		this.lastMouseX = mouseX;
 		this.lastMouseY = mouseY;
 
 		int panelWidth = 140;
 		int panelHeight = 120;
-		int panelX = getWidth() - panelWidth - 10;
-		int panelY = getHeight() - panelHeight - 10;
+		int panelX = width - panelWidth - 10;
+		int panelY = height - panelHeight - 10;
 
 		// Build connected players list
 		List<String> players = new ArrayList<String>();
 		if (SlabSocketClient.status.equals("Connected")) {
-			if (mc.thePlayer != null) {
-				players.add(mc.getSession().getUsername() + " (You)");
+			if (mc.player != null) {
+				players.add(mc.getUser().getName() + " (You)");
 			}
 			for (SlabSocketClient.RemotePlayer rp : SlabSocketClient.remotePlayers.values()) {
 				players.add(rp.username);
 			}
 		} else {
-			players.add(EnumChatFormatting.RED + "Offline");
+			players.add(ChatFormatting.RED + "Offline");
 		}
 
 		// Draw panel background (glassmorphism/sleek translucent black)
-		drawRect(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x80000000);
+		guiGraphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x80000000);
 		// Draw simple borders
-		drawRect(panelX, panelY, panelX + panelWidth, panelY + 1, 0x40FFFFFF);
-		drawRect(panelX, panelY + panelHeight - 1, panelX + panelWidth, panelY + panelHeight, 0x40FFFFFF);
-		drawRect(panelX, panelY, panelX + 1, panelY + panelHeight, 0x40FFFFFF);
-		drawRect(panelX + panelWidth - 1, panelY, panelX + panelWidth, panelY + panelHeight, 0x40FFFFFF);
+		guiGraphics.fill(panelX, panelY, panelX + panelWidth, panelY + 1, 0x40FFFFFF);
+		guiGraphics.fill(panelX, panelY + panelHeight - 1, panelX + panelWidth, panelY + panelHeight, 0x40FFFFFF);
+		guiGraphics.fill(panelX, panelY, panelX + 1, panelY + panelHeight, 0x40FFFFFF);
+		guiGraphics.fill(panelX + panelWidth - 1, panelY, panelX + panelWidth, panelY + panelHeight, 0x40FFFFFF);
 
 		// Header text
-		String headerText = EnumChatFormatting.AQUA + "Connected Players";
-		this.drawCenteredString(mc.fontRendererObj, headerText, panelX + panelWidth / 2, panelY + 6, 0xFFFFFF);
-		drawRect(panelX + 4, panelY + 18, panelX + panelWidth - 4, panelY + 19, 0x30FFFFFF);
+		String headerText = ChatFormatting.AQUA + "Connected Players";
+		guiGraphics.centeredText(mc.font, headerText, panelX + panelWidth / 2, panelY + 6, 0xFFFFFFFF);
+		guiGraphics.fill(panelX + 4, panelY + 18, panelX + panelWidth - 4, panelY + 19, 0x30FFFFFF);
 
 		int listY = panelY + 22;
 		int listHeight = panelHeight - 26;
@@ -179,61 +181,56 @@ public class GuiMenu extends GuiScreen {
 		}
 
 		// Enable scissor clipping
-		enableScissor(panelX + 2, listY, panelWidth - 4, listHeight);
+		guiGraphics.enableScissor(panelX + 2, listY, panelX + panelWidth - 2, listY + listHeight);
 
 		for (int i = 0; i < players.size(); i++) {
 			String name = players.get(i);
 			int itemY = listY + (i * rowHeight) - scrollOffset;
 			
-			int color = 0xFFFFFF;
+			int color = 0xFFFFFFFF;
 			if (name.endsWith(" (You)")) {
-				color = 0x55FF55; // Light green for local player
+				color = 0xFF55FF55; // Light green for local player
 			}
 			
-			mc.fontRendererObj.drawStringWithShadow(name, panelX + 8, itemY + 3, color);
+			guiGraphics.text(mc.font, name, panelX + 8, itemY + 3, color, true);
 		}
 
 		// Disable scissor clipping
-		disableScissor();
+		guiGraphics.disableScissor();
 
-		GL11.glPushMatrix();
-		float scale = 4;
-		GL11.glScalef(scale, scale, scale);
-		this.drawCenteredString(mc.fontRendererObj,
-				EnumChatFormatting.AQUA + "" + EnumChatFormatting.BOLD + "Slab Client", (int) (getWidth() / 2 / scale),
-				(int) ((getHeight() / 2 - (4 * scale)) / scale), 0xFFFFFF);
-		GL11.glPopMatrix();
+		float scale = 4.0F;
+		guiGraphics.pose().pushMatrix();
+		guiGraphics.pose().scale(scale, scale);
+		guiGraphics.centeredText(mc.font,
+				ChatFormatting.AQUA + "" + ChatFormatting.BOLD + "Slab Client", (int) (width / 2 / scale),
+				(int) ((height / 2 - (4 * scale)) / scale), 0xFFFFFFFF);
+		guiGraphics.pose().popMatrix();
 
 		// Draw instructions for the player
-		this.drawCenteredString(mc.fontRendererObj,
-				EnumChatFormatting.GRAY + "Double-click a module to toggle it. Drag to rearrange.",
-				getWidth() / 2, getHeight() / 2 + 25, 0xFFFFFF);
+		guiGraphics.centeredText(mc.font,
+				ChatFormatting.GRAY + "Double-click a module to toggle it. Drag to rearrange.",
+				width / 2, height / 2 + 25, 0xFFFFFFFF);
 
-		this.drawCenteredString(mc.fontRendererObj,
-				EnumChatFormatting.YELLOW + "Custom Commands: " + EnumChatFormatting.WHITE + "/setgg <message>",
-				getWidth() / 2, getHeight() / 2 + 40, 0xFFFFFF);
+		guiGraphics.centeredText(mc.font,
+				ChatFormatting.YELLOW + "Custom Commands: " + ChatFormatting.WHITE + "/setgg <message>",
+				width / 2, height / 2 + 40, 0xFFFFFFFF);
 
 		// Draw label for the text box
-		mc.fontRendererObj.drawStringWithShadow("Slab Server Address:", getWidth() / 2 - 120, getHeight() - 72, 0xFFFFFF);
+		guiGraphics.text(mc.font, "Slab Server Address:", width / 2 - 120, height - 72, 0xFFFFFFFF, true);
 		
 		// Draw status text
 		String statusText = "Status: " + SlabSocketClient.status;
-		int statusColor = 0xAAAAAA; // Gray
+		int statusColor = 0xFFAAAAAA; // Gray
 		if (SlabSocketClient.status.equals("Connected")) {
-			statusColor = 0x55FF55; // Green
+			statusColor = 0xFF55FF55; // Green
 			String totalClientsText = "Connected Clients: " + (SlabSocketClient.remotePlayers.size() + 1);
-			mc.fontRendererObj.drawStringWithShadow(totalClientsText, getWidth() / 2 + 40, getHeight() - 84, 0x55FFFF);
+			guiGraphics.text(mc.font, totalClientsText, width / 2 + 40, height - 84, 0xFF55FFFF, true);
 		} else if (SlabSocketClient.status.equals("Connecting...")) {
-			statusColor = 0xFFFF55; // Yellow
+			statusColor = 0xFFFFFF55; // Yellow
 		} else if (SlabSocketClient.status.equals("Failed")) {
-			statusColor = 0xFF5555; // Red
+			statusColor = 0xFFFF5555; // Red
 		}
-		mc.fontRendererObj.drawStringWithShadow(statusText, getWidth() / 2 + 40, getHeight() - 72, statusColor);
-
-		// Render text field
-		if (serverAddressField != null) {
-			serverAddressField.drawTextBox();
-		}
+		guiGraphics.text(mc.font, statusText, width / 2 + 40, height - 72, statusColor, true);
 
 		for (Button button : buttons) {
 			if (button.text.equals("Connect") || button.text.equals("Disconnect") || button.text.equals("Connecting...") || button.text.equals("Connection Failed")) {
@@ -248,7 +245,7 @@ public class GuiMenu extends GuiScreen {
 					button.color = 0x00FF00;
 				}
 			}
-			button.render(this, mc, mouseX, mouseY);
+			button.render(guiGraphics, mc, mouseX, mouseY);
 		}
 
 		// show boxes around modules
@@ -260,116 +257,102 @@ public class GuiMenu extends GuiScreen {
 			if (module.enabled == false)
 				color = 0x7FFF7F7F;
 
-			Gui.drawRect(module.x - 1, module.y - 1, module.x + width + 1, module.y + height + 1, color);
-			module.render(true); // force render
+			guiGraphics.fill(module.x - 1, module.y - 1, module.x + width + 1, module.y + height + 1, color);
+			module.render(guiGraphics, true); // force render
 		}
 
 		if (dragging != null) {
 			dragging.x = dragInitX + (mouseX - mouseInitX);
 			dragging.y = dragInitY + (mouseY - mouseInitY);
 		}
+
+		super.extractRenderState(guiGraphics, mouseX, mouseY, partialTicks);
 	}
 
 	@Override
-	public void mouseClicked(int x, int y, int buttonID) {
+	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		double x = event.x();
+		double y = event.y();
+		int buttonID = event.button();
 		System.out.println("Player clicked (" + x + "," + y + ")");
-
 		
 		boolean moduleClicked = false;
 		
 		for (Module module : RenderGuiHandler.modules) {
 			if (x > module.x && x < module.getWidth() + module.x && y > module.y && y < module.getHeight() + module.y) {
-				mouseInitX = x;
-				mouseInitY = y;
+				mouseInitX = (int) x;
+				mouseInitY = (int) y;
 				dragInitX = module.x;
 				dragInitY = module.y;
 				dragging = module;
-				clicks.put(Minecraft.getSystemTime(), module); // so we can check for double click
+				clicks.put(System.currentTimeMillis(), module); // so we can check for double click
 				System.out.println("Now dragging!");
 				moduleClicked = true;
 				break;
 			}
 		}
 		
-		if(!moduleClicked) {
+		if (!moduleClicked) {
 			for (Button button : buttons) {
-				button.checkClicked(x, y);
+				button.checkClicked((int) x, (int) y);
 			}
 		}
 
-		if (serverAddressField != null) {
-			serverAddressField.mouseClicked(x, y, buttonID);
+		// Explicitly handle focus for serverAddressField when clicked
+		boolean insideAddressField = x >= width / 2 - 120 && x <= width / 2 - 120 + 150 && y >= height - 60 && y <= height - 60 + 20;
+		if (insideAddressField) {
+			serverAddressField.setFocused(true);
+			this.setFocused(serverAddressField);
+		} else {
+			serverAddressField.setFocused(false);
 		}
+
+		return super.mouseClicked(event, doubleClick);
 	}
 
 	@Override
-	public void mouseReleased(int x, int y, int state) {
+	public boolean keyPressed(KeyEvent event) {
+		if (serverAddressField.isFocused() && serverAddressField.keyPressed(event)) {
+			return true;
+		}
+		return super.keyPressed(event);
+	}
+
+	@Override
+	public boolean charTyped(CharacterEvent event) {
+		if (serverAddressField.isFocused() && serverAddressField.charTyped(event)) {
+			return true;
+		}
+		return super.charTyped(event);
+	}
+
+	@Override
+	public boolean mouseReleased(MouseButtonEvent event) {
 		if (dragging != null) {
-			// snap dragged item back to grid
 			ConfigManager.save();
 		}
 		dragging = null;
+		return super.mouseReleased(event);
 	}
 
 	@Override
-	protected void keyTyped(char typedChar, int keyCode) throws java.io.IOException {
-		if (keyCode == 1) { // Escape key
-			super.keyTyped(typedChar, keyCode);
-			return;
-		}
-
-		if (serverAddressField != null && serverAddressField.isFocused()) {
-			serverAddressField.textboxKeyTyped(typedChar, keyCode);
-			SlabSocketClient.serverAddress = serverAddressField.getText();
-		} else {
-			super.keyTyped(typedChar, keyCode);
-		}
-	}
-
-	@Override
-	public void updateScreen() {
-		if (serverAddressField != null) {
-			serverAddressField.updateCursorCounter();
-		}
-	}
-
-	@Override
-	public void handleMouseInput() throws java.io.IOException {
-		super.handleMouseInput();
-		int dw = org.lwjgl.input.Mouse.getEventDWheel();
-		if (dw != 0) {
-			int panelWidth = 140;
-			int panelHeight = 120;
-			int panelX = getWidth() - panelWidth - 10;
-			int panelY = getHeight() - panelHeight - 10;
-			
-			if (lastMouseX >= panelX && lastMouseX <= panelX + panelWidth && lastMouseY >= panelY && lastMouseY <= panelY + panelHeight) {
-				if (dw > 0) {
-					scrollOffset -= 14;
-				} else {
-					scrollOffset += 14;
-				}
-				if (scrollOffset < 0) {
-					scrollOffset = 0;
-				}
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		int panelWidth = 140;
+		int panelHeight = 120;
+		int panelX = width - panelWidth - 10;
+		int panelY = height - panelHeight - 10;
+		
+		if (mouseX >= panelX && mouseX <= panelX + panelWidth && mouseY >= panelY && mouseY <= panelY + panelHeight) {
+			if (scrollY > 0) {
+				scrollOffset -= 14;
+			} else {
+				scrollOffset += 14;
 			}
+			if (scrollOffset < 0) {
+				scrollOffset = 0;
+			}
+			return true;
 		}
-	}
-
-	private void enableScissor(int x, int y, int width, int height) {
-		ScaledResolution sr = new ScaledResolution(mc);
-		int scale = sr.getScaleFactor();
-		
-		int scissorX = x * scale;
-		int scissorY = mc.displayHeight - (y + height) * scale;
-		int scissorW = width * scale;
-		int scissorH = height * scale;
-		
-		GL11.glEnable(GL11.GL_SCISSOR_TEST);
-		GL11.glScissor(scissorX, scissorY, scissorW, scissorH);
-	}
-
-	private void disableScissor() {
-		GL11.glDisable(GL11.GL_SCISSOR_TEST);
+		return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
 	}
 }

@@ -1,9 +1,9 @@
 package dev.slabstudios.slabclient;
  
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.network.FMLNetworkEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.bus.api.SubscribeEvent;
 import com.google.gson.JsonObject;
  
 public class ConnectionHandler {
@@ -17,11 +17,12 @@ public class ConnectionHandler {
 	}
 	
 	@SubscribeEvent
-	public void onConnect(FMLNetworkEvent.ClientConnectedToServerEvent event) {
-		if(!event.isLocal && Minecraft.getMinecraft().getCurrentServerData() != null) {
-			ip = Minecraft.getMinecraft().getCurrentServerData().serverIP;
+	public void onConnect(ClientPlayerNetworkEvent.LoggingIn event) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.getCurrentServer() != null) {
+			ip = mc.getCurrentServer().ip;
 			remote = true;
-		}else {
+		} else {
 			remote = false;
 			ip = "Disconnected";
 		}
@@ -31,7 +32,7 @@ public class ConnectionHandler {
 	}
 
 	@SubscribeEvent
-	public void onDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+	public void onDisconnect(ClientPlayerNetworkEvent.LoggingOut event) {
 		ip = "Disconnected";
 		remote = false;
 		
@@ -40,24 +41,23 @@ public class ConnectionHandler {
 	}
 
 	@SubscribeEvent
-	public void onTick(TickEvent.ClientTickEvent event) {
-		if (event.phase == TickEvent.Phase.END) {
-			ticks++;
-			if (ticks % 20 == 0) { // Every 20 ticks (1 second)
-				Minecraft mc = Minecraft.getMinecraft();
-				if (mc.thePlayer != null && mc.theWorld != null && SlabSocketClient.status.equals("Connected")) {
-					JsonObject pos = new JsonObject();
-					pos.addProperty("type", "position");
-					pos.addProperty("x", mc.thePlayer.posX);
-					pos.addProperty("y", mc.thePlayer.posY);
-					pos.addProperty("z", mc.thePlayer.posZ);
-					pos.addProperty("yaw", mc.thePlayer.rotationYaw);
-					pos.addProperty("pitch", mc.thePlayer.rotationPitch);
-					pos.addProperty("dimension", mc.thePlayer.dimension);
-					pos.addProperty("world_name", ip + "///" + mc.theWorld.getWorldInfo().getWorldName());
-					
-					SlabSocketClient.send(pos.toString());
-				}
+	public void onTick(ClientTickEvent.Post event) {
+		ticks++;
+		if (ticks % 20 == 0) { // Every 20 ticks (1 second)
+			Minecraft mc = Minecraft.getInstance();
+			if (mc.player != null && mc.level != null && SlabSocketClient.status.equals("Connected")) {
+				JsonObject pos = new JsonObject();
+				pos.addProperty("type", "position");
+				pos.addProperty("x", mc.player.getX());
+				pos.addProperty("y", mc.player.getY());
+				pos.addProperty("z", mc.player.getZ());
+				pos.addProperty("yaw", mc.player.getYRot());
+				pos.addProperty("pitch", mc.player.getXRot());
+				pos.addProperty("dimension", mc.level.dimension().identifier().toString());
+				String worldName = (mc.getSingleplayerServer() != null) ? mc.getSingleplayerServer().getWorldData().getLevelName() : "MpServer";
+				pos.addProperty("world_name", ip + "///" + worldName);
+				
+				SlabSocketClient.send(pos.toString());
 			}
 		}
 	}
