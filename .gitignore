@@ -25,3 +25,4 @@ run
 buildAndMine.ps1
 
 .vscode/
+copy-to-server.sh
